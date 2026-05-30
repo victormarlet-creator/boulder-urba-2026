@@ -1,0 +1,6 @@
+git init
+git add .
+git commit -m "Primera versió"
+git branch -M main
+git remote add origin https://github.com/EL-TEU-USUARI/boulder-collbato.git
+git push -u origin main
