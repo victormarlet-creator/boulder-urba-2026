@@ -31,7 +31,7 @@ export default function Problems() {
       const { data: sectorsData } = await supabase
         .from('sectors')
         .select('*')
-        .order('name')
+        
 
       // Carregar problemes actius per a la categoria del participant o sense categoria
       const { data: problemsData } = await supabase
