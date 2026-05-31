@@ -21,13 +21,16 @@ export default function Login() {
     }
 
     setLoading(true)
-    try {
-      const { data, error: dbError } = await supabase
-        .from('participants')
-        .select('id, dorsal, name, active, category_id, categories(name)')
-        .eq('dorsal', dorsal.trim())
-        .eq('private_code', code.trim())
-        .single()
+try {
+  const cleanDorsal = dorsal.trim().toUpperCase()
+  const cleanCode = code.trim().toUpperCase()
+
+  const { data, error: dbError } = await supabase
+    .from('participants')
+    .select('id, dorsal, name, active, category_id, categories(name)')
+    .eq('dorsal', cleanDorsal)
+    .eq('private_code', cleanCode)
+    .single()
 
       if (dbError || !data) {
         setError("Dorsal o codi incorrectes. Torna-ho a intentar.")
