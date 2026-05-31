@@ -123,12 +123,23 @@ export default function Problems() {
     }
   }
 
-  // Agrupar problemes per sector
-  const problemsBySector = sectors.map(sector => ({
-    sector,
-    problems: problems.filter(p => p.sector_id === sector.id),
-  })).filter(g => g.problems.length > 0)
+ // Agrupar problemes per sector i ordenar els sectors segons el primer número de problema
+const problemsBySector = sectors
+  .map(sector => {
+    const sectorProblems = problems
+      .filter(p => p.sector_id === sector.id)
+      .sort((a, b) => a.number - b.number)
 
+    return {
+      sector,
+      problems: sectorProblems,
+      firstProblemNumber: sectorProblems.length > 0
+        ? Math.min(...sectorProblems.map(p => p.number))
+        : 9999,
+    }
+  })
+  .filter(g => g.problems.length > 0)
+  .sort((a, b) => a.firstProblemNumber - b.firstProblemNumber)
   // Problemes sense sector assignat
   const unassigned = problems.filter(p => !p.sector_id || !sectors.find(s => s.id === p.sector_id))
 
