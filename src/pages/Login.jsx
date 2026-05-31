@@ -16,7 +16,7 @@ export default function Login() {
     setError('')
 
     if (!dorsal.trim() || !code.trim()) {
-      setError('Introdueix el dorsal i el codi privat.')
+      setError("Introdueix el dorsal i el codi privat.")
       return
     }
 
@@ -30,12 +30,12 @@ export default function Login() {
         .single()
 
       if (dbError || !data) {
-        setError('Dorsal o codi incorrectes. Torna-ho a intentar.')
+        setError("Dorsal o codi incorrectes. Torna-ho a intentar.")
         return
       }
 
       if (!data.active) {
-        setError('Aquest participant no està actiu. Consulta l'organització.')
+        setError("Aquest participant no està actiu. Consulta l'organització.")
         return
       }
 
@@ -48,7 +48,7 @@ export default function Login() {
       })
       navigate('/dashboard')
     } catch {
-      setError('Error de connexió. Comprova la connexió a internet.')
+      setError("Error de connexió. Comprova la connexió a internet.")
     } finally {
       setLoading(false)
     }
