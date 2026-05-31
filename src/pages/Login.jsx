@@ -26,16 +26,22 @@ try {
   const cleanCode = code.trim().toUpperCase()
 
   const { data, error: dbError } = await supabase
-    .from('participants')
-    .select('id, dorsal, name, active, category_id')
-    .eq('dorsal', cleanDorsal)
-    .eq('private_code', cleanCode)
-    .single()
+  .from('participants')
+  .select('id, dorsal, private_code, name, active, category_id, birth_year')
+  .eq('dorsal', cleanDorsal)
+  .eq('private_code', cleanCode)
+  .maybeSingle()
 
-      if (dbError || !data) {
-        setError("Dorsal o codi incorrectes. Torna-ho a intentar.")
-        return
-      }
+      if (dbError) {
+  console.error('Error Supabase login:', dbError)
+  setError('Error de connexió amb Supabase: ' + dbError.message)
+  return
+}
+
+if (!data) {
+  setError('No trobo cap participant amb aquest dorsal i codi.')
+  return
+}
 
       if (!data.active) {
         setError("Aquest participant no està actiu. Consulta l'organització.")
