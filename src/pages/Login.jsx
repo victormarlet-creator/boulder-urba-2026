@@ -1,4 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+useEffect(() => {
+  const savedDorsal = localStorage.getItem('boulder_dorsal') || ''
+  const savedCode = localStorage.getItem('boulder_code') || ''
+
+  setDorsal(savedDorsal)
+  setCode(savedCode)
+}, [])
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
@@ -47,7 +54,13 @@ if (!data) {
         setError("Aquest participant no està actiu. Consulta l'organització.")
         return
       }
+if (!data.active) {
+  setError("Aquest participant no està actiu. Consulta l'organització.")
+  return
+}
 
+localStorage.setItem('boulder_dorsal', cleanDorsal)
+localStorage.setItem('boulder_code', cleanCode)
       login({
         id: data.id,
         dorsal: data.dorsal,
