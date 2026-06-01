@@ -54,10 +54,7 @@ if (!data) {
         setError("Aquest participant no està actiu. Consulta l'organització.")
         return
       }
-if (!data.active) {
-  setError("Aquest participant no està actiu. Consulta l'organització.")
-  return
-}
+
 
 localStorage.setItem('boulder_dorsal', cleanDorsal)
 localStorage.setItem('boulder_code', cleanCode)
