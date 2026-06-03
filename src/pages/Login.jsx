@@ -86,28 +86,55 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-rock)] flex flex-col items-center justify-center p-4">
-      {/* Header */}
-      <div className="text-center mb-8">
-        <div className="text-6xl mb-3">⛰️</div>
-        <h1 className="font-display text-5xl text-white tracking-wider">BOULDER URBÀ</h1>
-        <p className="text-[var(--color-chalk-dark)] text-sm mt-2">Festa de la Muntanya de Collbató</p>
-      </div>
+    <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden bg-black">
+      {/* Imatge de fons */}
+      <div
+        className="absolute inset-0 bg-cover bg-center scale-105"
+        style={{ backgroundImage: "url('/fons-login.jpg')" }}
+      />
 
-      {/* Formulari */}
-      <div className="w-full max-w-sm">
-        <div className="bg-white rounded-2xl p-6 shadow-2xl">
-          <h2 className="font-display text-2xl text-[var(--color-rock)] mb-5">Identifica't</h2>
+      {/* Capa fosca */}
+      <div className="absolute inset-0 bg-black/60" />
+
+      {/* Degradat inferior */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/35 to-black/80" />
+
+      {/* Contingut */}
+      <div className="relative z-10 w-full max-w-sm">
+        {/* Capçalera */}
+        <div className="text-center mb-8">
+          <img
+            src="/logo-boulder.png"
+            alt="Boulder Urbà"
+            className="w-24 h-24 object-contain mx-auto mb-4 drop-shadow-2xl"
+          />
+
+          <h1 className="font-display text-5xl text-white tracking-wider drop-shadow-2xl">
+            BOULDER URBÀ
+          </h1>
+
+          <p className="text-white/90 text-sm mt-2 drop-shadow">
+            Festa de la Muntanya de Collbató
+          </p>
+        </div>
+
+        {/* Caixa login */}
+        <div className="bg-black/45 backdrop-blur-md rounded-3xl p-6 shadow-2xl border border-white/20">
+          <h2 className="font-display text-2xl text-white mb-5">
+            Identifica't
+          </h2>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="label">Dorsal</label>
+              <label className="block text-sm font-semibold text-white/90 mb-2">
+                Dorsal
+              </label>
               <input
                 type="text"
                 value={dorsal}
                 onChange={e => setDorsal(e.target.value)}
                 placeholder="Ex: 042"
-                className="input"
+                className="w-full rounded-xl border border-white/25 bg-white/12 text-white placeholder-white/45 px-4 py-3 outline-none focus:border-[var(--color-summit)] focus:ring-2 focus:ring-[var(--color-summit)]/30"
                 autoCapitalize="characters"
                 autoCorrect="off"
                 inputMode="text"
@@ -115,20 +142,22 @@ export default function Login() {
             </div>
 
             <div>
-              <label className="label">Codi privat</label>
+              <label className="block text-sm font-semibold text-white/90 mb-2">
+                Codi privat
+              </label>
               <input
                 type="text"
                 value={code}
                 onChange={e => setCode(e.target.value)}
                 placeholder="El teu codi secret"
-                className="input"
+                className="w-full rounded-xl border border-white/25 bg-white/12 text-white placeholder-white/45 px-4 py-3 outline-none focus:border-[var(--color-summit)] focus:ring-2 focus:ring-[var(--color-summit)]/30"
                 autoCapitalize="characters"
                 autoCorrect="off"
               />
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl p-3">
+              <div className="bg-red-500/15 border border-red-300/40 text-red-100 text-sm rounded-xl p-3">
                 {error}
               </div>
             )}
@@ -136,7 +165,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full text-base"
+              className="w-full rounded-xl bg-[var(--color-summit)] hover:bg-orange-600 text-white font-bold py-3 px-4 shadow-lg shadow-black/30 transition-all disabled:opacity-60 disabled:cursor-wait"
             >
               {loading ? 'Comprovant...' : 'Entrar'}
             </button>
@@ -145,19 +174,19 @@ export default function Login() {
               <button
                 type="button"
                 onClick={handleClearSavedLogin}
-                className="w-full text-xs underline text-[var(--color-stone)] mt-2"
+                className="w-full text-xs underline text-white/75 hover:text-white mt-2"
               >
                 Esborrar dorsal i codi guardats
               </button>
             )}
           </form>
 
-          <div className="mt-4 text-center">
+          <div className="mt-5 pt-4 border-t border-white/15 text-center">
             <a
               href="/classificacio"
-              className="text-sm text-[var(--color-stone)] hover:text-[var(--color-summit)] transition-colors"
+              className="text-sm text-white/85 hover:text-white transition-colors font-semibold"
             >
-              📊 Veure classificació pública
+              📊 Veure classificació pública ›
             </a>
           </div>
         </div>
