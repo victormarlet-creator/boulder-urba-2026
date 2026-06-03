@@ -100,7 +100,7 @@ export default function Login() {
 <div className="absolute inset-0 bg-black/30" />
 
 {/* Degradat inferior més suau */}
-<div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/15 to-black/45" />
+<div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/25 to-black/60" />
 
       {/* Contingut */}
       <div className="relative z-10 w-full max-w-sm">
