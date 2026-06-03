@@ -93,11 +93,11 @@ export default function Login() {
         style={{ backgroundImage: "url('/fons-login.jpg')" }}
       />
 
-      {/* Capa fosca */}
-      <div className="absolute inset-0 bg-black/60" />
+   {/* Capa fosca més suau */}
+<div className="absolute inset-0 bg-black/30" />
 
-      {/* Degradat inferior */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/35 to-black/80" />
+{/* Degradat inferior més suau */}
+<div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/15 to-black/45" />
 
       {/* Contingut */}
       <div className="relative z-10 w-full max-w-sm">
