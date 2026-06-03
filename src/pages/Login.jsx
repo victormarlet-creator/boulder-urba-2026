@@ -92,7 +92,7 @@ export default function Login() {
   className="absolute inset-0 bg-cover scale-105"
   style={{
     backgroundImage: "url('/fons-login.jpg')",
-    backgroundPosition: '50% 20%',
+    backgroundPosition: '80% 20%',
   }}
 />
 
