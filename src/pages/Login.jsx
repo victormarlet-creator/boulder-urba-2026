@@ -88,10 +88,13 @@ export default function Login() {
   return (
     <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden bg-black">
       {/* Imatge de fons */}
-      <div
-        className="absolute inset-0 bg-cover bg-center scale-105"
-        style={{ backgroundImage: "url('/fons-login.jpg')" }}
-      />
+     <div
+  className="absolute inset-0 bg-cover scale-105"
+  style={{
+    backgroundImage: "url('/fons-login.jpg')",
+    backgroundPosition: '50% 20%',
+  }}
+/>
 
    {/* Capa fosca més suau */}
 <div className="absolute inset-0 bg-black/30" />
