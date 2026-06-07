@@ -54,6 +54,15 @@ const hasBeta = Boolean(problem.beta)
                 📷 Veure foto del bloc
               </button>
             )}
+            {hasBeta && (
+  <button
+    type="button"
+    onClick={() => setShowBeta(true)}
+    className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-[var(--color-summit)] underline"
+  >
+    ℹ️ Explicació
+  </button>
+)}
           </div>
 
           {selected !== null && (
