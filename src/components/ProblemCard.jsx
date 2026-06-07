@@ -19,9 +19,11 @@ const ACTIVE_STYLE = {
 
 export default function ProblemCard({ problem, currentAttempts, onAttemptChange, saving }) {
   const selected = currentAttempts ?? null
-  const [showImage, setShowImage] = useState(false)
+const [showImage, setShowImage] = useState(false)
+const [showBeta, setShowBeta] = useState(false)
 
-  const hasImage = Boolean(problem.image_url)
+const hasImage = Boolean(problem.image_url)
+const hasBeta = Boolean(problem.beta)
 
   return (
     <>
