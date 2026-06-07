@@ -19,11 +19,11 @@ const ACTIVE_STYLE = {
 
 export default function ProblemCard({ problem, currentAttempts, onAttemptChange, saving }) {
   const selected = currentAttempts ?? null
-const [showImage, setShowImage] = useState(false)
-const [showBeta, setShowBeta] = useState(false)
+  const [showImage, setShowImage] = useState(false)
+  const [showBeta, setShowBeta] = useState(false)
 
-const hasImage = Boolean(problem.image_url)
-const hasBeta = Boolean(problem.beta)
+  const hasImage = Boolean(problem.image_url)
+  const hasBeta = Boolean(problem.beta)
 
   return (
     <>
@@ -54,15 +54,16 @@ const hasBeta = Boolean(problem.beta)
                 📷 Veure foto del bloc
               </button>
             )}
+
             {hasBeta && (
-  <button
-    type="button"
-    onClick={() => setShowBeta(true)}
-    className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-[var(--color-summit)] underline"
-  >
-    ℹ️ Explicació
-  </button>
-)}
+              <button
+                type="button"
+                onClick={() => setShowBeta(true)}
+                className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-[var(--color-summit)] underline"
+              >
+                ℹ️ Explicació
+              </button>
+            )}
           </div>
 
           {selected !== null && (
@@ -136,6 +137,42 @@ const hasBeta = Boolean(problem.beta)
                 alt={`Problema ${problem.number} - ${problem.name}`}
                 className="w-full max-h-[75vh] object-contain bg-black"
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showBeta && hasBeta && (
+        <div
+          className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowBeta(false)}
+        >
+          <div
+            className="relative max-w-md w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setShowBeta(false)}
+              className="absolute -top-12 right-0 text-white text-3xl font-bold"
+              aria-label="Tancar explicació"
+            >
+              ×
+            </button>
+
+            <div className="bg-white rounded-2xl overflow-hidden shadow-2xl">
+              <div className="p-3 bg-[var(--color-rock)] text-white">
+                <p className="font-display text-xl">
+                  Explicació bloc #{problem.number}
+                </p>
+                {problem.name && (
+                  <p className="text-sm opacity-90">{problem.name}</p>
+                )}
+              </div>
+
+              <div className="p-4 text-[var(--color-rock)] text-sm leading-relaxed">
+                {problem.beta}
+              </div>
             </div>
           </div>
         </div>
