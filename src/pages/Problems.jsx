@@ -17,14 +17,20 @@ export default function Problems() {
   const [competitionOpen, setCompetitionOpen] = useState(true)
 
   useEffect(() => {
-    loadAll()
+    if (participant) {
+      loadAll()
+    }
   }, [participant])
 
   const loadAll = async () => {
     setLoading(true)
+
     try {
       // Carregar settings
-      const { data: settings } = await supabase.from('settings').select('key, value')
+      const { data: settings } = await supabase
+        .from('settings')
+        .select('key, value')
+
       const openSetting = settings?.find(s => s.key === 'competition_open')
       setCompetitionOpen(openSetting?.value !== 'false')
 
@@ -32,7 +38,6 @@ export default function Problems() {
       const { data: sectorsData } = await supabase
         .from('sectors')
         .select('*')
-        
 
       // Carregar problemes actius per a la categoria del participant o sense categoria
       const { data: problemsData } = await supabase
@@ -56,6 +61,7 @@ export default function Problems() {
       for (const a of ascentsData || []) {
         map[a.problem_id] = a.attempts
       }
+
       setAscentsMap(map)
     } catch (err) {
       console.error('Error carregant problemes:', err)
@@ -69,124 +75,71 @@ export default function Problems() {
     setTimeout(() => setToast(null), 2500)
   }
 
-const handleAttemptChange = async (problemId, attempts) => {
-  if (!competitionOpen) {
-    showToast('La competició està tancada.', 'error')
-    return
-  }
-
-  const problem = problems.find(p => p.id === problemId)
-
-  if (!problem || !participant) {
-    showToast('Error trobant el bloc o el participant.', 'error')
-    return
-  }
-
-  setSaving(true)
-
-  try {
-    if (attempts === null) {
-      // Actualitzar la pantalla immediatament
-      setAscentsMap(prev => {
-        const next = { ...prev }
-        delete next[problemId]
-        return next
-      })
-
-      // Guardar eliminació a la cua offline
-      addToOfflineQueue({
-        action: 'delete',
-        participant_id: participant.id,
-        problem_id: problemId,
-      })
-
-      // Si hi ha internet, sincronitzar ara
-      if (navigator.onLine) {
-        await syncOfflineQueue()
-        showToast('Bloc eliminat ✓')
-      } else {
-        showToast('Bloc eliminat offline. Se sincronitzarà quan torni la cobertura.')
-      }
-    } else {
-      // Calcular punts com fins ara
-      const points = getPointsForAttempts(problem, attempts)
-
-      // Actualitzar la pantalla immediatament
-      setAscentsMap(prev => ({
-        ...prev,
-        [problemId]: attempts,
-      }))
-
-      // Guardar canvi a la cua offline
-      addToOfflineQueue({
-        action: 'upsert',
-        participant_id: participant.id,
-        problem_id: problemId,
-        attempts,
-        points_earned: points,
-        topped: true,
-      })
-
-      // Si hi ha internet, sincronitzar ara
-      if (navigator.onLine) {
-        await syncOfflineQueue()
-        showToast(`Bloc #${problem.number} guardat ✓`)
-      } else {
-        showToast(`Bloc #${problem.number} guardat offline. Se sincronitzarà quan torni la cobertura.`)
-      }
-    }
-  } catch (err) {
-    console.error('Error guardant:', err)
-    showToast('Error guardant. Torna-ho a intentar.', 'error')
-  } finally {
-    setSaving(false)
-  }
-}
+  const handleAttemptChange = async (problemId, attempts) => {
     if (!competitionOpen) {
       showToast('La competició està tancada.', 'error')
       return
     }
 
+    const problem = problems.find(p => p.id === problemId)
+
+    if (!problem || !participant) {
+      showToast('Error trobant el bloc o el participant.', 'error')
+      return
+    }
+
     setSaving(true)
+
     try {
-      const problem = problems.find(p => p.id === problemId)
-
       if (attempts === null) {
-        // Esborrar ascent
-        const { error } = await supabase
-          .from('ascents')
-          .delete()
-          .eq('participant_id', participant.id)
-          .eq('problem_id', problemId)
-
-        if (error) throw error
-
+        // Actualitzar la pantalla immediatament
         setAscentsMap(prev => {
           const next = { ...prev }
           delete next[problemId]
           return next
         })
-        showToast('Bloc eliminat ✓')
+
+        // Guardar eliminació a la cua offline
+        addToOfflineQueue({
+          action: 'delete',
+          participant_id: participant.id,
+          problem_id: problemId,
+        })
+
+        // Si hi ha internet, sincronitzar ara
+        if (navigator.onLine) {
+          await syncOfflineQueue()
+          showToast('Bloc eliminat ✓')
+        } else {
+          showToast('Bloc eliminat offline. Se sincronitzarà quan torni la cobertura.')
+        }
       } else {
-        // Inserir o actualitzar (upsert)
+        // Calcular punts com fins ara
         const points = getPointsForAttempts(problem, attempts)
 
-        const { error } = await supabase
-          .from('ascents')
-          .upsert({
-            participant_id: participant.id,
-            problem_id: problemId,
-            attempts,
-            points_earned: points,
-            topped: true,
-          }, {
-            onConflict: 'participant_id,problem_id'
-          })
+        // Actualitzar la pantalla immediatament
+        setAscentsMap(prev => ({
+          ...prev,
+          [problemId]: attempts,
+        }))
 
-        if (error) throw error
+        // Guardar canvi a la cua offline
+        addToOfflineQueue({
+          action: 'upsert',
+          participant_id: participant.id,
+          problem_id: problemId,
+          attempts,
+          points_earned: points,
+          topped: true,
+        })
 
-        setAscentsMap(prev => ({ ...prev, [problemId]: attempts }))
-        showToast(`Bloc #${problem.number} guardat ✓`)
+        // Si hi ha internet, sincronitzar ara
+        if (navigator.onLine) {
+          await syncOfflineQueue()
+          showToast(`Bloc #${problem.number} guardat ✓`)
+        } else {
+          showToast(`Bloc #${problem.number} guardat offline. Se sincronitzarà quan torni la cobertura.`)
+        }
       }
     } catch (err) {
       console.error('Error guardant:', err)
@@ -196,25 +149,28 @@ const handleAttemptChange = async (problemId, attempts) => {
     }
   }
 
- // Agrupar problemes per sector i ordenar els sectors segons el primer número de problema
-const problemsBySector = sectors
-  .map(sector => {
-    const sectorProblems = problems
-      .filter(p => p.sector_id === sector.id)
-      .sort((a, b) => a.number - b.number)
+  // Agrupar problemes per sector i ordenar els sectors segons el primer número de problema
+  const problemsBySector = sectors
+    .map(sector => {
+      const sectorProblems = problems
+        .filter(p => p.sector_id === sector.id)
+        .sort((a, b) => a.number - b.number)
 
-    return {
-      sector,
-      problems: sectorProblems,
-      firstProblemNumber: sectorProblems.length > 0
-        ? Math.min(...sectorProblems.map(p => p.number))
-        : 9999,
-    }
-  })
-  .filter(g => g.problems.length > 0)
-  .sort((a, b) => a.firstProblemNumber - b.firstProblemNumber)
+      return {
+        sector,
+        problems: sectorProblems,
+        firstProblemNumber: sectorProblems.length > 0
+          ? Math.min(...sectorProblems.map(p => p.number))
+          : 9999,
+      }
+    })
+    .filter(g => g.problems.length > 0)
+    .sort((a, b) => a.firstProblemNumber - b.firstProblemNumber)
+
   // Problemes sense sector assignat
-  const unassigned = problems.filter(p => !p.sector_id || !sectors.find(s => s.id === p.sector_id))
+  const unassigned = problems.filter(
+    p => !p.sector_id || !sectors.find(s => s.id === p.sector_id)
+  )
 
   const totalDone = Object.keys(ascentsMap).length
 
@@ -236,8 +192,11 @@ const problemsBySector = sectors
         <div className="flex items-center justify-between mb-4 pt-2">
           <div>
             <h1 className="font-display text-3xl text-[var(--color-rock)]">Blocs</h1>
-            <p className="text-sm text-[var(--color-stone)]">{totalDone} de {problems.length} fets</p>
+            <p className="text-sm text-[var(--color-stone)]">
+              {totalDone} de {problems.length} fets
+            </p>
           </div>
+
           {!competitionOpen && (
             <span className="text-xs bg-[var(--color-rock)] text-white px-3 py-1 rounded-full">
               🏁 Tancada
@@ -253,13 +212,26 @@ const problemsBySector = sectors
           <>
             {/* Llegenda d'intents */}
             <div className="card mb-4 py-3">
-              <p className="text-xs text-[var(--color-stone)] font-semibold uppercase tracking-wide mb-2">Llegenda</p>
+              <p className="text-xs text-[var(--color-stone)] font-semibold uppercase tracking-wide mb-2">
+                Llegenda
+              </p>
+
               <div className="flex gap-2 flex-wrap text-xs">
-                <span className="bg-[var(--color-green)] text-white px-2 py-0.5 rounded-full">1r intent</span>
-                <span className="bg-[var(--color-green-light)] text-white px-2 py-0.5 rounded-full">2n intent</span>
-                <span className="bg-[var(--color-summit)] text-white px-2 py-0.5 rounded-full">3r intent</span>
-                <span className="bg-[var(--color-summit-light)] text-white px-2 py-0.5 rounded-full">4t o +</span>
-                <span className="badge-premium">⭐ Premium</span>
+                <span className="bg-[var(--color-green)] text-white px-2 py-0.5 rounded-full">
+                  1r intent
+                </span>
+                <span className="bg-[var(--color-green-light)] text-white px-2 py-0.5 rounded-full">
+                  2n intent
+                </span>
+                <span className="bg-[var(--color-summit)] text-white px-2 py-0.5 rounded-full">
+                  3r intent
+                </span>
+                <span className="bg-[var(--color-summit-light)] text-white px-2 py-0.5 rounded-full">
+                  4t o +
+                </span>
+                <span className="badge-premium">
+                  ⭐ Premium
+                </span>
               </div>
             </div>
 
@@ -268,7 +240,9 @@ const problemsBySector = sectors
               <div key={sector.id} className="mb-6">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="h-px flex-1 bg-[var(--color-chalk-dark)]" />
-                  <h2 className="font-display text-xl text-[var(--color-rock)] px-2">{sector.name}</h2>
+                  <h2 className="font-display text-xl text-[var(--color-rock)] px-2">
+                    {sector.name}
+                  </h2>
                   <div className="h-px flex-1 bg-[var(--color-chalk-dark)]" />
                 </div>
 
@@ -289,9 +263,12 @@ const problemsBySector = sectors
               <div className="mb-6">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="h-px flex-1 bg-[var(--color-chalk-dark)]" />
-                  <h2 className="font-display text-xl text-[var(--color-rock)] px-2">Altres</h2>
+                  <h2 className="font-display text-xl text-[var(--color-rock)] px-2">
+                    Altres
+                  </h2>
                   <div className="h-px flex-1 bg-[var(--color-chalk-dark)]" />
                 </div>
+
                 {unassigned.map(problem => (
                   <ProblemCard
                     key={problem.id}
