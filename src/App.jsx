@@ -24,66 +24,89 @@ export default function App() {
       setIsOnline(true)
       setSyncing(true)
 
-      await syncOfflineQueue()
-
-      setPendingCount(getPendingCount())
-      setSyncing(false)
+      try {
+        await syncOfflineQueue()
+      } catch (error) {
+        console.error('Error sincronitzant canvis pendents:', error)
+      } finally {
+        setPendingCount(getPendingCount())
+        setSyncing(false)
+      }
     }
 
     function handleOffline() {
       setIsOnline(false)
       setPendingCount(getPendingCount())
+      setSyncing(false)
+    }
+
+    function refreshConnectionStatus() {
+      if (navigator.onLine) {
+        handleOnline()
+      } else {
+        handleOffline()
+      }
     }
 
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
+    window.addEventListener('focus', refreshConnectionStatus)
+    document.addEventListener('visibilitychange', refreshConnectionStatus)
 
-    if (navigator.onLine) {
-      handleOnline()
-    } else {
-      handleOffline()
-    }
+    refreshConnectionStatus()
 
     return () => {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
+      window.removeEventListener('focus', refreshConnectionStatus)
+      document.removeEventListener('visibilitychange', refreshConnectionStatus)
     }
   }, [])
 
   return (
-    <>
-      {!isOnline && (
-        <div className="offline-banner">
-          Sense cobertura. Els canvis es guardaran i se sincronitzaran automàticament.
-        </div>
-      )}
+    <BrowserRouter>
+      <div className="app-shell">
+        {!isOnline && (
+          <div className="offline-banner">
+            Sense cobertura. Els canvis es guardaran i se sincronitzaran automàticament.
+          </div>
+        )}
 
-      {isOnline && syncing && (
-        <div className="sync-banner">
-          Sincronitzant canvis pendents...
-        </div>
-      )}
+        {isOnline && syncing && (
+          <div className="sync-banner">
+            Sincronitzant canvis pendents...
+          </div>
+        )}
 
-      {isOnline && !syncing && pendingCount > 0 && (
-        <div className="sync-banner">
-          {pendingCount} canvis pendents de sincronitzar.
-        </div>
-      )}
+        {isOnline && !syncing && pendingCount > 0 && (
+          <div className="sync-banner">
+            {pendingCount} canvis pendents de sincronitzar.
+          </div>
+        )}
 
-      <BrowserRouter>
         <Routes>
           <Route path="/" element={<Login />} />
-          <Route path="/dashboard" element={
-            <PrivateRoute><Dashboard /></PrivateRoute>
-          } />
-          <Route path="/problemes" element={
-            <PrivateRoute><Problems /></PrivateRoute>
-          } />
+          <Route
+            path="/dashboard"
+            element={
+              <PrivateRoute>
+                <Dashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/problemes"
+            element={
+              <PrivateRoute>
+                <Problems />
+              </PrivateRoute>
+            }
+          />
           <Route path="/classificacio" element={<Classificacio />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </BrowserRouter>
-    </>
+      </div>
+    </BrowserRouter>
   )
 }
