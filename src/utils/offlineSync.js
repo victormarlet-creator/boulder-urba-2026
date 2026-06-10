@@ -1,6 +1,6 @@
 import { supabase } from '../supabaseClient'
 
-const QUEUE_KEY = 'pending_attempt_updates'
+const QUEUE_KEY = 'pending_ascent_updates'
 
 function getQueue() {
   try {
@@ -21,6 +21,7 @@ export function getPendingCount() {
 export function addToOfflineQueue(update) {
   const queue = getQueue()
 
+  // Per cada participant + problema només guardem l'últim canvi
   const filtered = queue.filter(
     item =>
       !(
@@ -68,6 +69,7 @@ export async function syncOfflineQueue() {
       )
 
     if (error) {
+      console.error('Error sincronitzant canvi offline:', error)
       stillPending.push(item)
     } else {
       synced++
