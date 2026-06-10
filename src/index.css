@@ -29,7 +29,9 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3 {
+h1,
+h2,
+h3 {
   font-family: var(--font-display);
   letter-spacing: 0.03em;
 }
@@ -105,6 +107,7 @@ h1, h2, h3 {
 .attempt-btn-none {
   @apply border-[var(--color-chalk-dark)] bg-[var(--color-chalk)] text-[var(--color-stone)];
 }
+
 .app-shell {
   min-height: 100vh;
 }
@@ -116,7 +119,7 @@ h1, h2, h3 {
   text-align: center;
   font-weight: 800;
   position: fixed;
-  top: 0;
+  top: env(safe-area-inset-top, 0px);
   left: 0;
   right: 0;
   z-index: 999999;
@@ -132,7 +135,7 @@ h1, h2, h3 {
   text-align: center;
   font-weight: 800;
   position: fixed;
-  top: 0;
+  top: env(safe-area-inset-top, 0px);
   left: 0;
   right: 0;
   z-index: 999999;
