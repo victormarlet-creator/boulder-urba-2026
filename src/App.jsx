@@ -15,7 +15,7 @@ function PrivateRoute({ children }) {
 }
 
 export default function App() {
-  const [isOnline, setIsOnline] = useState(navigator.onLine)
+  const [isOnline, setIsOnline] = useState(false)
   const [pendingCount, setPendingCount] = useState(getPendingCount())
   const [syncing, setSyncing] = useState(false)
 
