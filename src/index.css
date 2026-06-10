@@ -105,3 +105,26 @@ h1, h2, h3 {
 .attempt-btn-none {
   @apply border-[var(--color-chalk-dark)] bg-[var(--color-chalk)] text-[var(--color-stone)];
 }
+.offline-banner {
+  background: #f59e0b;
+  color: #111827;
+  padding: 10px 14px;
+  text-align: center;
+  font-weight: 700;
+  position: sticky;
+  top: 0;
+  z-index: 9999;
+  font-size: 14px;
+}
+
+.sync-banner {
+  background: #2563eb;
+  color: white;
+  padding: 10px 14px;
+  text-align: center;
+  font-weight: 700;
+  position: sticky;
+  top: 0;
+  z-index: 9999;
+  font-size: 14px;
+}
