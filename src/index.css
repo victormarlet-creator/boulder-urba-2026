@@ -105,26 +105,38 @@ h1, h2, h3 {
 .attempt-btn-none {
   @apply border-[var(--color-chalk-dark)] bg-[var(--color-chalk)] text-[var(--color-stone)];
 }
+.app-shell {
+  min-height: 100vh;
+}
+
 .offline-banner {
   background: #f59e0b;
   color: #111827;
-  padding: 10px 14px;
+  padding: 11px 14px;
   text-align: center;
-  font-weight: 700;
-  position: sticky;
+  font-weight: 800;
+  position: fixed;
   top: 0;
-  z-index: 9999;
+  left: 0;
+  right: 0;
+  z-index: 999999;
   font-size: 14px;
+  line-height: 1.3;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
 }
 
 .sync-banner {
   background: #2563eb;
   color: white;
-  padding: 10px 14px;
+  padding: 11px 14px;
   text-align: center;
-  font-weight: 700;
-  position: sticky;
+  font-weight: 800;
+  position: fixed;
   top: 0;
-  z-index: 9999;
+  left: 0;
+  right: 0;
+  z-index: 999999;
   font-size: 14px;
+  line-height: 1.3;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
 }
