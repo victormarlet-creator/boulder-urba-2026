@@ -1,4 +1,4 @@
-import { supabase } from '../supabaseClient'
+import { supabase } from '../lib/supabase'
 
 const QUEUE_KEY = 'pending_ascent_updates'
 
@@ -21,7 +21,7 @@ export function getPendingCount() {
 export function addToOfflineQueue(update) {
   const queue = getQueue()
 
-  // Per cada participant + problema només guardem l'últim canvi
+  // Per cada participant + problema només guardem l'últim canvi pendent
   const filtered = queue.filter(
     item =>
       !(
@@ -53,20 +53,34 @@ export async function syncOfflineQueue() {
   let synced = 0
 
   for (const item of queue) {
-    const { error } = await supabase
-      .from('ascents')
-      .upsert(
-        {
-          participant_id: item.participant_id,
-          problem_id: item.problem_id,
-          ascents: item.ascents,
-          points: item.points,
-          updated_at: item.updated_at,
-        },
-        {
-          onConflict: 'participant_id,problem_id',
-        }
-      )
+    let error = null
+
+    if (item.action === 'delete') {
+      const result = await supabase
+        .from('ascents')
+        .delete()
+        .eq('participant_id', item.participant_id)
+        .eq('problem_id', item.problem_id)
+
+      error = result.error
+    } else {
+      const result = await supabase
+        .from('ascents')
+        .upsert(
+          {
+            participant_id: item.participant_id,
+            problem_id: item.problem_id,
+            attempts: item.attempts,
+            points_earned: item.points_earned,
+            topped: true,
+          },
+          {
+            onConflict: 'participant_id,problem_id',
+          }
+        )
+
+      error = result.error
+    }
 
     if (error) {
       console.error('Error sincronitzant canvi offline:', error)
