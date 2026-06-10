@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { getPointsForAttempts } from '../utils/scoring'
+import { addToOfflineQueue, syncOfflineQueue } from '../utils/offlineSync'
 import Navbar from '../components/Navbar'
 import ProblemCard from '../components/ProblemCard'
 
