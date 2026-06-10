@@ -111,7 +111,7 @@ export default function Problems() {
           await syncOfflineQueue()
           showToast('Bloc eliminat ✓')
         } else {
-          showToast('Bloc eliminat offline. Se sincronitzarà quan torni la cobertura.')
+          showToast('Sense cobertura. Canvi guardat offline.', 'offline')
         }
       } else {
         // Calcular punts com fins ara
@@ -138,7 +138,7 @@ export default function Problems() {
           await syncOfflineQueue()
           showToast(`Bloc #${problem.number} guardat ✓`)
         } else {
-          showToast(`Bloc #${problem.number} guardat offline. Se sincronitzarà quan torni la cobertura.`)
+          showToast(`Bloc #${problem.number} guardat offline. Se sincronitzarà quan torni la cobertura.`, 'offline')
         }
       }
     } catch (err) {
@@ -179,13 +179,17 @@ export default function Problems() {
       <Navbar />
 
       {/* Toast */}
-      {toast && (
-        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl shadow-lg text-sm font-semibold text-white transition-all ${
-          toast.type === 'error' ? 'bg-[var(--color-danger)]' : 'bg-[var(--color-green)]'
-        }`}>
-          {toast.msg}
-        </div>
-      )}
+     {toast && (
+  <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[999999] px-4 py-2 rounded-xl shadow-lg text-sm font-semibold transition-all max-w-[90vw] text-center ${
+    toast.type === 'error'
+      ? 'bg-[var(--color-danger)] text-white'
+      : toast.type === 'offline'
+        ? 'bg-[#f59e0b] text-[#111827]'
+        : 'bg-[var(--color-green)] text-white'
+  }`}>
+    {toast.msg}
+  </div>
+)}
 
       <div className="max-w-lg mx-auto p-4">
         {/* Capçalera */}
