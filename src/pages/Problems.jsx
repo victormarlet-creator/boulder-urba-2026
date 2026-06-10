@@ -69,7 +69,79 @@ export default function Problems() {
     setTimeout(() => setToast(null), 2500)
   }
 
-  const handleAttemptChange = async (problemId, attempts) => {
+const handleAttemptChange = async (problemId, attempts) => {
+  if (!competitionOpen) {
+    showToast('La competició està tancada.', 'error')
+    return
+  }
+
+  const problem = problems.find(p => p.id === problemId)
+
+  if (!problem || !participant) {
+    showToast('Error trobant el bloc o el participant.', 'error')
+    return
+  }
+
+  setSaving(true)
+
+  try {
+    if (attempts === null) {
+      // Actualitzar la pantalla immediatament
+      setAscentsMap(prev => {
+        const next = { ...prev }
+        delete next[problemId]
+        return next
+      })
+
+      // Guardar eliminació a la cua offline
+      addToOfflineQueue({
+        action: 'delete',
+        participant_id: participant.id,
+        problem_id: problemId,
+      })
+
+      // Si hi ha internet, sincronitzar ara
+      if (navigator.onLine) {
+        await syncOfflineQueue()
+        showToast('Bloc eliminat ✓')
+      } else {
+        showToast('Bloc eliminat offline. Se sincronitzarà quan torni la cobertura.')
+      }
+    } else {
+      // Calcular punts com fins ara
+      const points = getPointsForAttempts(problem, attempts)
+
+      // Actualitzar la pantalla immediatament
+      setAscentsMap(prev => ({
+        ...prev,
+        [problemId]: attempts,
+      }))
+
+      // Guardar canvi a la cua offline
+      addToOfflineQueue({
+        action: 'upsert',
+        participant_id: participant.id,
+        problem_id: problemId,
+        attempts,
+        points_earned: points,
+        topped: true,
+      })
+
+      // Si hi ha internet, sincronitzar ara
+      if (navigator.onLine) {
+        await syncOfflineQueue()
+        showToast(`Bloc #${problem.number} guardat ✓`)
+      } else {
+        showToast(`Bloc #${problem.number} guardat offline. Se sincronitzarà quan torni la cobertura.`)
+      }
+    }
+  } catch (err) {
+    console.error('Error guardant:', err)
+    showToast('Error guardant. Torna-ho a intentar.', 'error')
+  } finally {
+    setSaving(false)
+  }
+}
     if (!competitionOpen) {
       showToast('La competició està tancada.', 'error')
       return
