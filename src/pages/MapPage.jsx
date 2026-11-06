@@ -577,12 +577,14 @@ export default function MapPage() {
               width: '100%',
             }}
           >
-            <TileLayer
-              attribution="&copy; OpenStreetMap contributors"
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}/{z}.png"
-              maxNativeZoom={19}
-              maxZoom={MAX_ZOOM}
-            />
+           
+<TileLayer
+  attribution="&copy; OpenStreetMap contributors"
+  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+  maxNativeZoom={19}
+  maxZoom={MAX_ZOOM}
+/>
+
 
             {/* DETECTAR ZOOM */}
             <ZoomWatcher
