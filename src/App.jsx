@@ -7,7 +7,7 @@ import Dashboard from './pages/Dashboard'
 import Problems from './pages/Problems'
 import Classificacio from './pages/Classificacio'
 import Admin from './pages/Admin'
-
+import MapPage from './pages/MapPage'
 function PrivateRoute({ children }) {
   const { participant } = useAuth()
   if (!participant) return <Navigate to="/" replace />
@@ -103,6 +103,16 @@ export default function App() {
             }
           />
           <Route path="/classificacio" element={<Classificacio />} />
+          
+<Route
+  path="/mapa"
+  element={
+    <PrivateRoute>
+      <MapPage />
+    </PrivateRoute>
+  }
+/>
+
           <Route path="/admin" element={<Admin />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
