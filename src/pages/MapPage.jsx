@@ -129,15 +129,19 @@ export default function MapPage() {
 
         <div className="rounded-xl overflow-hidden border border-gray-200">
           <MapContainer
-            center={CENTER}
-            zoom={16}
-            scrollWheelZoom={false}
-            style={{ height: '65vh', minHeight: 400, width: '100%' }}
-          >
+  center={CENTER}
+  zoom={17}
+  minZoom={14}
+  maxZoom={22}
+  scrollWheelZoom={true}
+  style={{ height: '70vh', minHeight: 450, width: '100%' }}
+>
             <TileLayer
-              attribution='&copy; OpenStreetMap contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
+  attribution="&copy; OpenStreetMap contributors"
+  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+  maxNativeZoom={19}
+  maxZoom={22}
+/>
 
             {/* Sectors: marcadors blaus */}
             {locatedSectors.map((sector) => (
