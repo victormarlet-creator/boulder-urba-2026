@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
@@ -7,47 +8,72 @@ export default function Navbar() {
 
   const isActive = (path) => location.pathname === path
 
+  const navStyle = (path) =>
+    `text-xs sm:text-sm font-semibold px-2 sm:px-3 py-2 rounded-lg transition-colors whitespace-nowrap ${
+      isActive(path)
+        ? 'bg-[var(--color-summit)] text-white'
+        : 'text-gray-300 hover:text-white'
+    }`
+
   return (
     <nav className="bg-[var(--color-rock)] text-white shadow-lg">
-      <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
-        <Link to="/dashboard" className="flex items-center gap-2">
-          <span className="text-2xl font-display tracking-wider text-[var(--color-summit)]">⛰️ COLLBATÓ</span>
+      <div className="max-w-4xl mx-auto px-2 sm:px-4 py-3 flex items-center justify-between gap-2">
+
+        {/* LOGOTIP */}
+        <Link
+          to="/dashboard"
+          className="flex items-center gap-1 shrink-0"
+        >
+          <span className="text-sm sm:text-2xl font-display tracking-wide text-[var(--color-summit)]">
+            ⛰️ COLLBATÓ
+          </span>
         </Link>
 
-        <div className="flex items-center gap-3">
+        {/* MENÚ PRINCIPAL */}
+        <div className="flex items-center gap-0.5 sm:gap-2">
+
           <Link
             to="/dashboard"
-            className={`text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors ${
-              isActive('/dashboard')
-                ? 'bg-[var(--color-summit)] text-white'
-                : 'text-gray-300 hover:text-white'
-            }`}
+            className={navStyle('/dashboard')}
           >
             Inici
           </Link>
+
           <Link
             to="/problemes"
-            className={`text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors ${
-              isActive('/problemes')
-                ? 'bg-[var(--color-summit)] text-white'
-                : 'text-gray-300 hover:text-white'
-            }`}
+            className={navStyle('/problemes')}
           >
             Blocs
           </Link>
+
+          {/* NOU BOTÓ MAPA */}
+          <Link
+            to="/mapa"
+            className={navStyle('/mapa')}
+          >
+            Mapa
+          </Link>
+
           <button
+            type="button"
             onClick={logout}
-            className="text-sm text-gray-400 hover:text-white transition-colors"
+            className="text-xs sm:text-sm text-gray-400 hover:text-white transition-colors px-1 sm:px-2 whitespace-nowrap"
           >
             Sortir
           </button>
+
         </div>
       </div>
 
+      {/* INFORMACIÓ DEL PARTICIPANT */}
       {participant && (
         <div className="bg-[var(--color-rock-light)] px-4 py-1.5 text-center">
           <span className="text-xs text-gray-400">
-            #{participant.dorsal} · <span className="text-white font-semibold">{participant.name}</span>
+            #{participant.dorsal}
+            {' · '}
+            <span className="text-white font-semibold">
+              {participant.name}
+            </span>
           </span>
         </div>
       )}
