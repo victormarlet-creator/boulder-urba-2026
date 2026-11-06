@@ -19,7 +19,9 @@ import { supabase } from '../lib/supabase'
 import { getPointsForAttempts } from '../utils/scoring'
 import Navbar from '../components/Navbar'
 
-const CENTER = [41.5673977, 1.8281993]
+
+const CENTER = [41.5692, 1.8281993]
+
 const INITIAL_ZOOM = 17
 const MAX_ZOOM = 22
 
