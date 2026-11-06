@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard'
 import Problems from './pages/Problems'
 import Classificacio from './pages/Classificacio'
 import Admin from './pages/Admin'
+import AdminMapPage from './pages/AdminMapPage'
 import MapPage from './pages/MapPage'
 function PrivateRoute({ children }) {
   const { participant } = useAuth()
@@ -86,6 +87,7 @@ export default function App() {
 
         <Routes>
           <Route path="/" element={<Login />} />
+          <Route path="/admin/mapa" element={<AdminMapPage />} />
           <Route
             path="/dashboard"
             element={
