@@ -80,6 +80,14 @@ export default function Dashboard() {
         )}
 
         {/* Botons d'accés ràpid */}
+        
+<Link
+  to="/mapa"
+  className="btn-secondary w-full block text-center text-lg"
+>
+  🗺️ Mapa dels sectors i blocs
+</Link>
+
         {competitionOpen && (
           <Link to="/problemes" className="btn-primary w-full block text-center text-lg">
             🧗 Registrar blocs
