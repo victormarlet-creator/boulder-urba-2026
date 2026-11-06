@@ -174,21 +174,33 @@ export default function MapPage() {
 
             {/* Blocs: taronja o premium en daurat */}
             {locatedProblems.map((problem) => (
-              <CircleMarker
-                key={`problem-${problem.id}`}
-                center={[
-                  Number(problem.latitude),
-                  Number(problem.longitude),
-                ]}
-                radius={4}
-                pathOptions={{
-                  color: problem.is_premium ? '#b45309' : '#c2410c',
-                  fillColor: problem.is_premium
-                    ? '#facc15'
-                    : '#f97316',
-                  fillOpacity: 0.95,
-                }}
-              >
+  <CircleMarker
+    key={`problem-${problem.id}`}
+    center={[
+      Number(problem.latitude),
+      Number(problem.longitude),
+    ]}
+    radius={4}
+    pathOptions={{
+      color: problem.is_premium ? '#b45309' : '#c2410c',
+      fillColor: problem.is_premium ? '#facc15' : '#f97316',
+      fillOpacity: 0.95,
+      weight: 1,
+    }}
+  >
+    <Tooltip
+      permanent
+      direction="top"
+      offset={[0, -2]}
+      opacity={1}
+    >
+      <span style={{ fontSize: '10px', fontWeight: 'bold' }}>
+        {problem.number}
+      </span>
+    </Tooltip>
+  </CircleMarker>
+  )
+)}
                 <Popup>
                   <strong>Bloc #{problem.number}</strong>
                   <br />
