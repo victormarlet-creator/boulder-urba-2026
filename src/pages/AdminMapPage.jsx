@@ -465,9 +465,11 @@ export default function AdminMapPage() {
   }}
 >
           >
-            <TileLayer
+           <TileLayer
               attribution="&copy; OpenStreetMap contributors"
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+
             />
 
             <MapClickHandler onPick={pickLocation} />
