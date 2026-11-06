@@ -473,7 +473,7 @@ export default function AdminMapPage() {
               <CircleMarker
                 key={`sector-${s.id}`}
                 center={[Number(s.latitude), Number(s.longitude)]}
-                radius={10}
+                radius={6}
                 pathOptions={{
                   color: '#1d4ed8',
                   fillColor: '#3b82f6',
@@ -487,7 +487,7 @@ export default function AdminMapPage() {
               <CircleMarker
                 key={`problem-${p.id}`}
                 center={[Number(p.latitude), Number(p.longitude)]}
-                radius={8}
+                radius={4}
                 pathOptions={{
                   color: p.is_premium ? '#b45309' : '#c2410c',
                   fillColor: p.is_premium ? '#facc15' : '#f97316',
@@ -512,7 +512,7 @@ export default function AdminMapPage() {
 
                 <CircleMarker
                   center={[draft.lat, draft.lng]}
-                  radius={13}
+                  radius={7}
                   pathOptions={{
                     color: '#166534',
                     fillColor: '#22c55e',
