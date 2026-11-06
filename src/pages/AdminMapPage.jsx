@@ -452,13 +452,18 @@ export default function AdminMapPage() {
         {/* Mapa interactiu */}
         <div className="rounded-xl overflow-hidden border-2 border-gray-200">
           <MapContainer
-            center={CENTER}
-            zoom={16}
-            style={{
-              height: '60vh',
-              minHeight: 400,
-              width: '100%',
-            }}
+  center={CENTER}
+  zoom={18}
+  minZoom={15}
+  maxZoom={22}
+  scrollWheelZoom={true}
+  doubleClickZoom={true}
+  style={{
+    height: '70vh',
+    minHeight: 500,
+    width: '100%',
+  }}
+>
           >
             <TileLayer
               attribution="&copy; OpenStreetMap contributors"
