@@ -21,7 +21,9 @@ import Navbar from '../components/Navbar'
 
 
 
-const CENTER = [41.5715, 1.8287]
+
+const CENTER = [41.5705, 1.8287]
+
 
 
 const INITIAL_ZOOM = 17
