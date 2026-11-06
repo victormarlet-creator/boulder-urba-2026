@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   MapContainer,
   TileLayer,
@@ -15,35 +16,42 @@ import { supabase } from '../lib/supabase'
 import Navbar from '../components/Navbar'
 
 const CENTER = [41.5673977, 1.8281993]
+const MAX_ZOOM = 22
 
+// Comprova que el bloc o sector té coordenades
 function hasLocation(item) {
-  return item.latitude != null &&
+  return (
+    item.latitude != null &&
     item.longitude != null &&
     Number.isFinite(Number(item.latitude)) &&
     Number.isFinite(Number(item.longitude))
+  )
 }
 
+// Centra el mapa en la ubicació del participant
 function FollowLocation({ location }) {
   const map = useMap()
 
   useEffect(() => {
-    if (location) {
-      map.flyTo(
-        [location.lat, location.lng],
-        Math.max(map.getZoom(), 19)
-      )
-    }
+    if (!location) return
+
+    map.flyTo(
+      [location.lat, location.lng],
+      Math.max(map.getZoom(), 19),
+      { duration: 0.7 }
+    )
   }, [map, location])
 
   return null
 }
 
+// Obrir indicacions a Google Maps
 function directions(lat, lng) {
-  window.open(
-    `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
-    '_blank',
-    'noopener,noreferrer'
-  )
+  const url =
+    'https://www.google.com/maps/dir/?api=1' +
+    `&destination=${lat},${lng}`
+
+  window.open(url, '_blank', 'noopener,noreferrer')
 }
 
 export default function MapPage() {
@@ -54,39 +62,50 @@ export default function MapPage() {
   const [locating, setLocating] = useState(false)
   const [error, setError] = useState('')
 
+  // Carregar sectors i blocs actius de Supabase
   useEffect(() => {
-    async function loadData() {
+    async function loadMapData() {
       try {
-        const [p, s] = await Promise.all([
-          supabase
-            .from('problems')
-            .select('*')
-            .eq('active', true)
-            .order('number'),
-          supabase
-            .from('sectors')
-            .select('*'),
-        ])
+        const [problemsResult, sectorsResult] =
+          await Promise.all([
+            supabase
+              .from('problems')
+              .select('*')
+              .eq('active', true)
+              .order('number'),
 
-        if (p.error) throw p.error
-        if (s.error) throw s.error
+            supabase
+              .from('sectors')
+              .select('*'),
+          ])
 
-        setProblems(p.data || [])
-        setSectors(s.data || [])
+        if (problemsResult.error) {
+          throw problemsResult.error
+        }
+
+        if (sectorsResult.error) {
+          throw sectorsResult.error
+        }
+
+        setProblems(problemsResult.data || [])
+        setSectors(sectorsResult.data || [])
       } catch (err) {
-        console.error(err)
-        setError('No s’han pogut carregar les dades.')
+        console.error('Error carregant mapa:', err)
+        setError(
+          'No s’han pogut carregar les dades del mapa.'
+        )
       } finally {
         setLoading(false)
       }
     }
 
-    loadData()
+    loadMapData()
   }, [])
 
+  // Obtenir ubicació actual del participant
   function showMyLocation() {
     if (!navigator.geolocation) {
-      alert('Aquest dispositiu no permet GPS.')
+      alert('Aquest dispositiu no permet geolocalització.')
       return
     }
 
@@ -99,11 +118,14 @@ export default function MapPage() {
           lng: position.coords.longitude,
           accuracy: position.coords.accuracy,
         })
+
         setLocating(false)
       },
       err => {
-        console.error(err)
-        alert('No hem pogut obtenir la ubicació.')
+        console.error('Error GPS:', err)
+        alert(
+          'No hem pogut obtenir la teva ubicació. Revisa els permisos GPS.'
+        )
         setLocating(false)
       },
       {
@@ -127,9 +149,12 @@ export default function MapPage() {
         </h1>
 
         <p className="text-sm text-gray-600 mb-4">
-          Consulta els sectors i blocs de la competició.
+          Consulta els sectors i els blocs de la competició.
+          Clica el nom d'un bloc per anar directament
+          al seu registre d'intents.
         </p>
 
+        {/* UBICACIÓ DEL PARTICIPANT */}
         <button
           onClick={showMyLocation}
           disabled={locating}
@@ -140,23 +165,35 @@ export default function MapPage() {
             : '📍 Veure la meva ubicació'}
         </button>
 
-        {loading && <p>Carregant mapa...</p>}
-        {error && <p className="text-red-600">{error}</p>}
+        {loading && (
+          <p className="text-sm mb-3">
+            Carregant mapa...
+          </p>
+        )}
+
+        {error && (
+          <p className="text-red-600 mb-3">
+            {error}
+          </p>
+        )}
 
         {!loading && !error && (
           <p className="text-sm text-gray-600 mb-3">
-            {locatedSectors.length} sectors ubicats ·{' '}
+            {locatedSectors.length} sectors ubicats
+            {' · '}
             {locatedProblems.length} blocs ubicats
           </p>
         )}
 
-        <div className="rounded-xl overflow-hidden border">
+        {/* MAPA INTERACTIU */}
+        <div className="rounded-xl overflow-hidden border border-gray-200">
           <MapContainer
             center={CENTER}
             zoom={17}
             minZoom={13}
-            maxZoom={22}
+            maxZoom={MAX_ZOOM}
             scrollWheelZoom={true}
+            doubleClickZoom={true}
             style={{
               height: '70vh',
               minHeight: 450,
@@ -167,7 +204,7 @@ export default function MapPage() {
               attribution="&copy; OpenStreetMap contributors"
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               maxNativeZoom={19}
-              maxZoom={22}
+              maxZoom={MAX_ZOOM}
             />
 
             <FollowLocation location={myLocation} />
@@ -185,24 +222,47 @@ export default function MapPage() {
                   color: '#1d4ed8',
                   fillColor: '#3b82f6',
                   fillOpacity: 0.85,
+                  weight: 1,
                 }}
               >
+                <Tooltip>
+                  Sector: {sector.name}
+                </Tooltip>
+
                 <Popup>
-                  <strong>{sector.name}</strong>
-                  <br />
-                  <button
-                    onClick={() => directions(
-                      sector.latitude,
-                      sector.longitude
-                    )}
-                  >
-                    📍 Com arribar-hi
-                  </button>
+                  <div style={{ minWidth: 150 }}>
+                    <strong style={{ fontSize: 15 }}>
+                      📍 {sector.name}
+                    </strong>
+
+                    <button
+                      onClick={() =>
+                        directions(
+                          sector.latitude,
+                          sector.longitude
+                        )
+                      }
+                      style={{
+                        display: 'block',
+                        marginTop: 10,
+                        background: '#e85d04',
+                        color: 'white',
+                        padding: '9px 12px',
+                        border: 'none',
+                        borderRadius: 8,
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        width: '100%',
+                      }}
+                    >
+                      📍 Com arribar-hi
+                    </button>
+                  </div>
                 </Popup>
               </CircleMarker>
             ))}
 
-            {/* BLOCS */}
+            {/* BLOCS NORMALS I PREMIUM */}
             {locatedProblems.map(problem => (
               <CircleMarker
                 key={`problem-${problem.id}`}
@@ -222,51 +282,94 @@ export default function MapPage() {
                   weight: 1,
                 }}
               >
+                {/* Número visible sobre el marcador */}
                 <Tooltip
                   permanent
                   direction="top"
                   offset={[0, -3]}
+                  opacity={1}
                 >
-                  <strong>{problem.number}</strong>
+                  <strong style={{ fontSize: 10 }}>
+                    {problem.number}
+                  </strong>
                 </Tooltip>
 
+                {/* Informació del bloc */}
                 <Popup>
-                  <div style={{ minWidth: 170 }}>
-                    <strong style={{ fontSize: 16 }}>
+                  <div style={{ minWidth: 180 }}>
+                    <strong style={{
+                      display: 'block',
+                      fontSize: 16,
+                      marginBottom: 6,
+                    }}>
                       Bloc #{problem.number}
                     </strong>
 
-                    <div style={{
-                      fontSize: 15,
-                      fontWeight: 700,
-                      marginTop: 8,
-                      marginBottom: 8,
-                      color: '#e85d04',
-                    }}>
+                    {/* NOM CLICABLE: MENÚ BLOCS */}
+                    <Link
+                      to={`/problemes?bloc=${encodeURIComponent(problem.number)}`}
+                      style={{
+                        display: 'block',
+                        fontSize: 15,
+                        fontWeight: 'bold',
+                        color: '#e85d04',
+                        textDecoration: 'underline',
+                        marginTop: 8,
+                        marginBottom: 10,
+                        cursor: 'pointer',
+                      }}
+                    >
                       {problem.name?.trim()
                         ? problem.name
-                        : 'Nom no disponible'}
-                    </div>
+                        : `Bloc #${problem.number}`}
+                      {' ↗'}
+                    </Link>
 
-                    <p style={{ margin: '6px 0 12px' }}>
+                    <div style={{
+                      fontSize: 12,
+                      marginBottom: 12,
+                      color: '#4a4a4a',
+                    }}>
                       {problem.is_premium
                         ? '⭐ Bloc Premium'
                         : '🧗 Bloc normal'}
-                    </p>
+                    </div>
 
-                    <button
-                      onClick={() => directions(
-                        problem.latitude,
-                        problem.longitude
-                      )}
+                    {/* ACCÉS DIRECTE AL MENÚ BLOCS */}
+                    <Link
+                      to={`/problemes?bloc=${encodeURIComponent(problem.number)}`}
                       style={{
-                        background: '#e85d04',
-                        color: 'white',
-                        padding: '9px 12px',
+                        display: 'block',
+                        padding: '10px 12px',
                         borderRadius: 8,
+                        background: '#1a1a1a',
+                        color: 'white',
+                        fontWeight: 'bold',
+                        textAlign: 'center',
+                        textDecoration: 'none',
+                        marginBottom: 8,
+                      }}
+                    >
+                      🧗 Anar al bloc #{problem.number}
+                    </Link>
+
+                    {/* INDICACIONS */}
+                    <button
+                      onClick={() =>
+                        directions(
+                          problem.latitude,
+                          problem.longitude
+                        )
+                      }
+                      style={{
+                        display: 'block',
+                        padding: '9px 12px',
+                        color: 'white',
+                        background: '#e85d04',
                         border: 'none',
+                        borderRadius: 8,
+                        fontWeight: 'bold',
                         cursor: 'pointer',
-                        fontWeight: 700,
                         width: '100%',
                       }}
                     >
@@ -277,40 +380,77 @@ export default function MapPage() {
               </CircleMarker>
             ))}
 
-            {/* UBICACIÓ DEL PARTICIPANT */}
+            {/* UBICACIÓ ACTUAL DEL PARTICIPANT */}
             {myLocation && (
               <>
                 <Circle
-                  center={[myLocation.lat, myLocation.lng]}
+                  center={[
+                    myLocation.lat,
+                    myLocation.lng,
+                  ]}
                   radius={myLocation.accuracy}
                   pathOptions={{
                     color: '#16a34a',
+                    fillColor: '#22c55e',
                     fillOpacity: 0.06,
                   }}
                 />
 
                 <CircleMarker
-                  center={[myLocation.lat, myLocation.lng]}
+                  center={[
+                    myLocation.lat,
+                    myLocation.lng,
+                  ]}
                   radius={7}
                   pathOptions={{
                     color: '#166534',
                     fillColor: '#22c55e',
                     fillOpacity: 1,
+                    weight: 2,
                   }}
                 >
-                  <Popup>📍 Ets aquí</Popup>
+                  <Tooltip
+                    permanent
+                    direction="top"
+                  >
+                    Ets aquí
+                  </Tooltip>
+
+                  <Popup>
+                    <strong>
+                      📍 La meva ubicació
+                    </strong>
+                    <br />
+                    Precisió aproximada:
+                    {' '}
+                    {Math.round(myLocation.accuracy)}
+                    {' '}metres
+                  </Popup>
                 </CircleMarker>
               </>
             )}
           </MapContainer>
         </div>
 
+        {/* LLEGENDA */}
         <div className="flex flex-wrap gap-4 text-sm mt-4">
           <span>🔵 Sectors</span>
           <span>🟠 Blocs</span>
           <span>🟡 Premium</span>
           <span>🟢 La meva ubicació</span>
         </div>
+
+        <p className="text-xs text-gray-500 mt-4">
+          Clica un punt del mapa per veure el bloc.
+          Toca el seu nom per obrir-lo al menú Blocs.
+        </p>
+
+        <p className="text-xs text-gray-500 mt-2">
+          Amplia el mapa amb els botons + i -.
+          Només es mostren els punts amb coordenades
+          guardades. La teva ubicació GPS no es guarda
+          ni es comparteix.
+        </p>
       </main>
     </div>
   )
