@@ -7,6 +7,7 @@ import {
   CircleMarker,
   Circle,
   Tooltip,
+  Popup,
   useMap,
   useMapEvents,
 } from 'react-leaflet'
@@ -16,6 +17,7 @@ import { supabase } from '../lib/supabase'
 import { adminSupabase } from '../lib/adminSupabase'
 
 const CENTER = [41.5673977, 1.8281993]
+const MAX_ZOOM = 22
 
 function hasLocation(item) {
   return (
@@ -26,7 +28,7 @@ function hasLocation(item) {
   )
 }
 
-// Detecta els clics sobre el mapa
+// Permet seleccionar una posició clicant sobre el mapa
 function MapClickHandler({ onPick }) {
   useMapEvents({
     click(e) {
@@ -41,7 +43,7 @@ function MapClickHandler({ onPick }) {
   return null
 }
 
-// Mou el mapa fins al punt seleccionat
+// Centra el mapa quan seleccionem un bloc o fem servir el GPS
 function MapCenter({ target }) {
   const map = useMap()
 
@@ -50,7 +52,8 @@ function MapCenter({ target }) {
 
     map.flyTo(
       [target.lat, target.lng],
-      Math.max(map.getZoom(), 17)
+      Math.max(map.getZoom(), 19),
+      { duration: 0.7 }
     )
   }, [map, target])
 
@@ -81,7 +84,6 @@ export default function AdminMapPage() {
     item => String(item.id) === selectedId
   )
 
-  // Carregar blocs i sectors
   async function loadData() {
     setLoading(true)
     setMessage('')
@@ -106,13 +108,12 @@ export default function AdminMapPage() {
       setSectors(s.data || [])
     } catch (error) {
       console.error(error)
-      setMessage('Error carregant les dades: ' + error.message)
+      setMessage('Error carregant dades: ' + error.message)
     } finally {
       setLoading(false)
     }
   }
 
-  // Inici de sessió amb Supabase Auth
   async function login(e) {
     e.preventDefault()
     setLoggingIn(true)
@@ -145,7 +146,6 @@ export default function AdminMapPage() {
     setMessage('')
   }
 
-  // Canviar entre blocs i sectors
   function changeKind(value) {
     setKind(value)
     setSelectedId('')
@@ -154,10 +154,10 @@ export default function AdminMapPage() {
     setMessage('')
   }
 
-  // Seleccionar un element
   function selectItem(value) {
     setSelectedId(value)
     setDraft(null)
+    setMapTarget(null)
     setMessage('')
 
     const item = items.find(
@@ -172,7 +172,6 @@ export default function AdminMapPage() {
     }
   }
 
-  // Guardar coordenades provisionals
   function pickLocation(coords) {
     if (!selectedId) {
       setMessage('Primer selecciona un bloc o sector.')
@@ -180,10 +179,11 @@ export default function AdminMapPage() {
     }
 
     setDraft(coords)
-    setMessage('Ubicació preparada. Prem Guardar per confirmar.')
+    setMessage(
+      'Ubicació preparada. Prem Guardar per confirmar.'
+    )
   }
 
-  // Obtenir ubicació GPS
   function captureGPS() {
     if (!selectedId) {
       setMessage('Primer selecciona un bloc o sector.')
@@ -191,7 +191,7 @@ export default function AdminMapPage() {
     }
 
     if (!navigator.geolocation) {
-      setMessage('El dispositiu no disposa de geolocalització.')
+      setMessage('Aquest dispositiu no permet GPS.')
       return
     }
 
@@ -207,16 +207,20 @@ export default function AdminMapPage() {
         }
 
         setDraft(coords)
-        setMapTarget({ lat: coords.lat, lng: coords.lng })
-        setMessage('Ubicació GPS obtinguda. Revisa-la abans de guardar.')
+        setMapTarget({
+          lat: coords.lat,
+          lng: coords.lng,
+        })
+
+        setMessage(
+          'Ubicació GPS obtinguda. Revisa-la abans de guardar.'
+        )
         setGpsLoading(false)
       },
-
       error => {
         setMessage('Error GPS: ' + error.message)
         setGpsLoading(false)
       },
-
       {
         enableHighAccuracy: true,
         timeout: 20000,
@@ -225,7 +229,6 @@ export default function AdminMapPage() {
     )
   }
 
-  // Guardar a Supabase amb la funció protegida
   async function saveLocation() {
     if (!selected || !draft || saving) return
 
@@ -250,7 +253,6 @@ export default function AdminMapPage() {
 
       if (error) throw error
 
-      // Actualitzar els marcadors del mapa
       if (targetKind === 'problem') {
         setProblems(previous =>
           previous.map(p =>
@@ -279,7 +281,6 @@ export default function AdminMapPage() {
     }
   }
 
-  // Pantalla de login
   if (!user) {
     return (
       <div className="min-h-screen bg-[#1a1a1a] flex items-center justify-center p-4">
@@ -314,7 +315,9 @@ export default function AdminMapPage() {
           />
 
           {loginError && (
-            <p className="text-red-600 text-sm">{loginError}</p>
+            <p className="text-red-600 text-sm">
+              {loginError}
+            </p>
           )}
 
           <button
@@ -362,7 +365,6 @@ export default function AdminMapPage() {
       </header>
 
       <main className="max-w-5xl mx-auto p-4 space-y-4">
-        {/* Selecció del tipus */}
         <div className="bg-white rounded-xl p-4 space-y-3">
           <h2 className="font-bold text-lg">
             1. Què vols ubicar?
@@ -419,6 +421,7 @@ export default function AdminMapPage() {
                   ? `Bloc ${selected.number}`
                   : selected.name}
               </strong>
+
               <p>
                 {hasLocation(selected)
                   ? '✅ Ja té ubicació guardada. La pots corregir.'
@@ -428,15 +431,14 @@ export default function AdminMapPage() {
           )}
         </div>
 
-        {/* Instruccions i GPS */}
         <div className="bg-white rounded-xl p-4 space-y-3">
           <h2 className="font-bold text-lg">
             2. Marca la ubicació
           </h2>
 
           <p className="text-sm text-gray-600">
-            Pots clicar directament sobre el mapa o situar-te
-            físicament al bloc i capturar les coordenades GPS.
+            Clica sobre el mapa o captura la ubicació
+            GPS quan estiguis davant del bloc.
           </p>
 
           <button
@@ -450,73 +452,95 @@ export default function AdminMapPage() {
           </button>
         </div>
 
-        {/* Mapa interactiu */}
         <div className="rounded-xl overflow-hidden border-2 border-gray-200">
           <MapContainer
-  center={CENTER}
-  zoom={18}
-  minZoom={15}
-  maxZoom={22}
-  scrollWheelZoom={true}
-  doubleClickZoom={true}
-  style={{
-    height: '70vh',
-    minHeight: 500,
-    width: '100%',
-  }}
->
+            center={CENTER}
+            zoom={18}
+            minZoom={13}
+            maxZoom={MAX_ZOOM}
+            scrollWheelZoom={true}
+            doubleClickZoom={false}
+            style={{
+              height: '70vh',
+              minHeight: 500,
+              width: '100%',
+            }}
           >
-           <TileLayer
+            <TileLayer
               attribution="&copy; OpenStreetMap contributors"
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-
+              maxNativeZoom={19}
+              maxZoom={MAX_ZOOM}
             />
 
             <MapClickHandler onPick={pickLocation} />
             <MapCenter target={mapTarget} />
 
-            {/* Sectors */}
+            {/* SECTORS: punts blaus petits */}
             {locatedSectors.map(s => (
               <CircleMarker
                 key={`sector-${s.id}`}
-                center={[Number(s.latitude), Number(s.longitude)]}
+                center={[
+                  Number(s.latitude),
+                  Number(s.longitude),
+                ]}
                 radius={6}
                 pathOptions={{
                   color: '#1d4ed8',
                   fillColor: '#3b82f6',
-                  fillOpacity: 0.85,
+                  fillOpacity: 0.8,
+                  weight: 1,
                 }}
-              />
+              >
+                <Tooltip>
+                  Sector: {s.name}
+                </Tooltip>
+              </CircleMarker>
             ))}
 
-            {/* Blocs */}
+            {/* BLOCS: punts petits i numerats */}
             {locatedProblems.map(p => (
-  <CircleMarker
-    key={`problem-${p.id}`}
-    center={[Number(p.latitude), Number(p.longitude)]}
-    radius={4}
-    pathOptions={{
-      color: p.is_premium ? '#b45309' : '#c2410c',
-      fillColor: p.is_premium ? '#facc15' : '#f97316',
-      fillOpacity: 0.95,
-      weight: 1,
-    }}
-  >
-    <Tooltip
-      permanent
-      direction="top"
-      offset={[0, -2]}
-      opacity={1}
-    >
-      <span style={{ fontSize: '10px', fontWeight: 'bold' }}>
-        {p.number}
-      </span>
-    </Tooltip>
-  </CircleMarker>
-))}
+              <CircleMarker
+                key={`problem-${p.id}`}
+                center={[
+                  Number(p.latitude),
+                  Number(p.longitude),
+                ]}
+                radius={4}
+                pathOptions={{
+                  color: p.is_premium
+                    ? '#b45309'
+                    : '#c2410c',
+                  fillColor: p.is_premium
+                    ? '#facc15'
+                    : '#f97316',
+                  fillOpacity: 0.95,
+                  weight: 1,
+                }}
+              >
+                <Tooltip
+                  permanent
+                  direction="top"
+                  offset={[0, -2]}
+                  opacity={1}
+                >
+                  <span style={{
+                    fontSize: '10px',
+                    fontWeight: 'bold',
+                  }}>
+                    {p.number}
+                  </span>
+                </Tooltip>
 
-            {/* Punt provisional */}
+                <Popup>
+                  <strong>Bloc {p.number}</strong>
+                  <br />
+                  {p.is_premium ? '⭐ Premium' : 'Bloc normal'}
+                </Popup>
+              </CircleMarker>
+            ))}
+
+            {/* POSICIÓ PROVISIONAL */}
             {draft && (
               <>
                 {draft.accuracy != null && (
@@ -525,7 +549,7 @@ export default function AdminMapPage() {
                     radius={draft.accuracy}
                     pathOptions={{
                       color: '#16a34a',
-                      fillOpacity: 0.08,
+                      fillOpacity: 0.06,
                     }}
                   />
                 )}
@@ -537,8 +561,13 @@ export default function AdminMapPage() {
                     color: '#166534',
                     fillColor: '#22c55e',
                     fillOpacity: 1,
+                    weight: 2,
                   }}
-                />
+                >
+                  <Tooltip permanent direction="top">
+                    Nova ubicació
+                  </Tooltip>
+                </CircleMarker>
               </>
             )}
           </MapContainer>
@@ -551,7 +580,6 @@ export default function AdminMapPage() {
           <span>🟢 Posició provisional</span>
         </div>
 
-        {/* Confirmació de la ubicació */}
         <div className="bg-white rounded-xl p-4 space-y-3">
           <h2 className="font-bold text-lg">
             3. Confirma i guarda
@@ -575,7 +603,7 @@ export default function AdminMapPage() {
             </div>
           ) : (
             <p className="text-sm text-gray-600">
-              Selecciona un element i marca un punt al mapa.
+              Selecciona un bloc o sector i marca un punt.
             </p>
           )}
 
@@ -613,13 +641,20 @@ export default function AdminMapPage() {
         </div>
 
         <div className="bg-white rounded-xl p-4 text-sm space-y-2">
-          <p className="font-bold">Estat del mapa</p>
-          <p>
-            🟠 Blocs ubicats: {locatedProblems.length} / {problems.length}
+          <p className="font-bold">
+            Estat del mapa
           </p>
+
           <p>
-            🔵 Sectors ubicats: {locatedSectors.length} / {sectors.length}
+            🟠 Blocs ubicats: {locatedProblems.length}
+            {' / '}{problems.length}
           </p>
+
+          <p>
+            🔵 Sectors ubicats: {locatedSectors.length}
+            {' / '}{sectors.length}
+          </p>
+
           <button
             onClick={loadData}
             className="btn-secondary w-full"
@@ -629,8 +664,9 @@ export default function AdminMapPage() {
         </div>
 
         <p className="text-xs text-gray-500">
-          Les ubicacions GPS només es capturen quan prems el botó.
-          No es guarda cap historial de moviments.
+          Les coordenades només es guarden quan prems
+          el botó de confirmació. No es registra cap
+          historial de moviments.
         </p>
       </main>
     </div>
