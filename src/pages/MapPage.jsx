@@ -10,6 +10,7 @@ import {
   Tooltip,
   Popup,
   useMap,
+  useMapEvents,
 } from 'react-leaflet'
 import { divIcon } from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -18,10 +19,12 @@ import { supabase } from '../lib/supabase'
 import { getPointsForAttempts } from '../utils/scoring'
 import Navbar from '../components/Navbar'
 
+// Configuració del mapa
 const CENTER = [41.5673977, 1.8281993]
+const INITIAL_ZOOM = 17
 const MAX_ZOOM = 22
 
-// Comprovar les coordenades
+// Comprovar coordenades
 function hasLocation(item) {
   return (
     item.latitude != null &&
@@ -35,8 +38,30 @@ function hasLocation(item) {
   )
 }
 
-// Crear marcador numerat fàcil de tocar amb el dit
-function createNumberIcon(problem) {
+// Detectar el zoom actual del mapa
+function ZoomWatcher({ onZoomChange }) {
+  const map = useMapEvents({
+    zoomend() {
+      onZoomChange(map.getZoom())
+    },
+  })
+
+  return null
+}
+
+// Calcular la mida dels números segons el zoom
+function getMarkerSize(zoom) {
+  if (zoom <= 15) return 16
+  if (zoom === 16) return 20
+  if (zoom === 17) return 25
+  if (zoom === 18) return 30
+  if (zoom === 19) return 34
+
+  return 38
+}
+
+// Crear un marcador numerat adaptatiu
+function createNumberIcon(problem, zoom) {
   const premium = problem.is_premium === true
 
   const background = premium ? '#eab308' : '#e85d04'
@@ -47,11 +72,25 @@ function createNumberIcon(problem) {
     ? String(number)
     : '?'
 
+  const size = getMarkerSize(zoom)
+
+  const fontSize = Math.max(
+    9,
+    Math.round(size * 0.42)
+  )
+
+  const radius = Math.max(
+    4,
+    Math.round(size * 0.22)
+  )
+
+  // Zona tàctil de 44 px.
+  // La part visible canvia segons el zoom.
   return divIcon({
     className: 'boulder-number-marker',
     iconSize: [44, 44],
     iconAnchor: [22, 22],
-    popupAnchor: [0, -23],
+    popupAnchor: [0, -22],
     html: `
       <div style="
         width:44px;
@@ -64,19 +103,21 @@ function createNumberIcon(problem) {
         touch-action:manipulation;
       ">
         <div style="
-          width:38px;
-          height:38px;
+          width:${size}px;
+          height:${size}px;
           display:flex;
           align-items:center;
           justify-content:center;
           box-sizing:border-box;
           background:${background};
           color:white;
-          border:2px solid ${border};
-          border-radius:10px;
-          font-size:16px;
+          border:1.5px solid ${border};
+          border-radius:${radius}px;
+          font-size:${fontSize}px;
           font-weight:800;
-          box-shadow:0 2px 7px rgba(0,0,0,0.3);
+          line-height:1;
+          box-shadow:0 2px 5px rgba(0,0,0,0.25);
+          pointer-events:none;
         ">
           ${label}
         </div>
@@ -85,7 +126,7 @@ function createNumberIcon(problem) {
   })
 }
 
-// Centrar el mapa en la ubicació del participant
+// Centrar el mapa en la ubicació GPS
 function FollowLocation({ location }) {
   const map = useMap()
 
@@ -102,15 +143,20 @@ function FollowLocation({ location }) {
   return null
 }
 
-// Obrir Google Maps amb indicacions
+// Obrir Google Maps
 function directions(lat, lng) {
   const url =
     'https://www.google.com/maps/dir/?api=1' +
     `&destination=${lat},${lng}`
 
-  window.open(url, '_blank', 'noopener,noreferrer')
+  window.open(
+    url,
+    '_blank',
+    'noopener,noreferrer'
+  )
 }
 
+// Estil dels botons
 const buttonStyle = {
   display: 'block',
   width: '100%',
@@ -126,7 +172,7 @@ const buttonStyle = {
   fontSize: 13,
 }
 
-// Informació completa en clicar un número
+// Informació completa del bloc
 function BlockPopup({ problem, sectorName }) {
   const attempts = [
     { label: '1r', value: 1 },
@@ -135,6 +181,7 @@ function BlockPopup({ problem, sectorName }) {
     { label: '4t+', value: 4 },
   ]
 
+  // Enllaç al menú Blocs
   const blockUrl =
     `/problemes?bloc=${encodeURIComponent(problem.number)}`
 
@@ -151,7 +198,7 @@ function BlockPopup({ problem, sectorName }) {
         paddingRight: 3,
       }}
     >
-      {/* Número i tipus de bloc */}
+      {/* Número i premium */}
       <div
         style={{
           display: 'flex',
@@ -181,7 +228,7 @@ function BlockPopup({ problem, sectorName }) {
         )}
       </div>
 
-      {/* Nom clicable: menú habitual Blocs */}
+      {/* Nom clicable */}
       <Link
         to={blockUrl}
         style={{
@@ -212,7 +259,7 @@ function BlockPopup({ problem, sectorName }) {
         📍 <strong>Sector:</strong> {sectorName}
       </div>
 
-      {/* Grau i modalitat, si estan disponibles */}
+      {/* Grau i modalitat */}
       {(problem.grade || problem.modality) && (
         <div
           style={{
@@ -231,7 +278,7 @@ function BlockPopup({ problem, sectorName }) {
         </div>
       )}
 
-      {/* Explicació */}
+      {/* Explicació del bloc */}
       {problem.beta && (
         <div
           style={{
@@ -322,6 +369,7 @@ function BlockPopup({ problem, sectorName }) {
         })}
       </div>
 
+      {/* Informació premium */}
       {problem.is_premium && (
         <p
           style={{
@@ -331,12 +379,12 @@ function BlockPopup({ problem, sectorName }) {
             margin: '0 0 12px',
           }}
         >
-          Punts base. El factor premium es calcula
-          a la classificació.
+          Punts base. El factor premium
+          es calcula a la classificació.
         </p>
       )}
 
-      {/* Anar directament al menú Blocs */}
+      {/* Obrir el menú habitual de blocs */}
       <Link
         to={blockUrl}
         style={{
@@ -348,11 +396,14 @@ function BlockPopup({ problem, sectorName }) {
         🧗 Anar al bloc #{problem.number}
       </Link>
 
-      {/* Indicacions */}
+      {/* Google Maps */}
       <button
         type="button"
         onClick={() =>
-          directions(problem.latitude, problem.longitude)
+          directions(
+            problem.latitude,
+            problem.longitude
+          )
         }
         style={{
           ...buttonStyle,
@@ -365,15 +416,21 @@ function BlockPopup({ problem, sectorName }) {
   )
 }
 
+// Pàgina principal del mapa
 export default function MapPage() {
   const [problems, setProblems] = useState([])
   const [sectors, setSectors] = useState([])
   const [myLocation, setMyLocation] = useState(null)
+
+  const [mapZoom, setMapZoom] = useState(
+    INITIAL_ZOOM
+  )
+
   const [loading, setLoading] = useState(true)
   const [locating, setLocating] = useState(false)
   const [error, setError] = useState('')
 
-  // Carregar les dades de Supabase
+  // Carregar blocs i sectors
   useEffect(() => {
     async function loadMapData() {
       try {
@@ -395,7 +452,11 @@ export default function MapPage() {
         setProblems(p.data || [])
         setSectors(s.data || [])
       } catch (err) {
-        console.error('Error carregant mapa:', err)
+        console.error(
+          'Error carregant mapa:',
+          err
+        )
+
         setError(
           'No s’han pogut carregar les dades del mapa.'
         )
@@ -407,7 +468,7 @@ export default function MapPage() {
     loadMapData()
   }, [])
 
-  // Mostrar la ubicació pròpia
+  // Localització GPS del participant
   function showMyLocation() {
     if (!navigator.geolocation) {
       alert('Aquest dispositiu no permet GPS.')
@@ -428,10 +489,12 @@ export default function MapPage() {
       },
       err => {
         console.error('Error GPS:', err)
+
         alert(
           'No hem pogut obtenir la teva ubicació. ' +
           'Revisa els permisos GPS.'
         )
+
         setLocating(false)
       },
       {
@@ -442,13 +505,21 @@ export default function MapPage() {
     )
   }
 
-  const locatedProblems = problems.filter(hasLocation)
-  const locatedSectors = sectors.filter(hasLocation)
+  // Filtrar punts amb coordenades
+  const locatedProblems = problems.filter(
+    hasLocation
+  )
 
-  // Nom del sector corresponent
+  const locatedSectors = sectors.filter(
+    hasLocation
+  )
+
+  // Obtenir el nom del sector
   function getSectorName(problem) {
     const sector = sectors.find(
-      s => String(s.id) === String(problem.sector_id)
+      s =>
+        String(s.id) ===
+        String(problem.sector_id)
     )
 
     return sector?.name || 'Sense sector assignat'
@@ -479,7 +550,9 @@ export default function MapPage() {
             : '📍 Veure la meva ubicació'}
         </button>
 
-        {loading && <p>Carregant mapa...</p>}
+        {loading && (
+          <p>Carregant mapa...</p>
+        )}
 
         {error && (
           <p className="text-red-600 mb-3">
@@ -495,11 +568,11 @@ export default function MapPage() {
           </p>
         )}
 
-        {/* MAPA */}
+        {/* MAPA INTERACTIU */}
         <div className="rounded-xl overflow-hidden border border-gray-200">
           <MapContainer
             center={CENTER}
-            zoom={17}
+            zoom={INITIAL_ZOOM}
             minZoom={13}
             maxZoom={MAX_ZOOM}
             scrollWheelZoom={true}
@@ -517,9 +590,17 @@ export default function MapPage() {
               maxZoom={MAX_ZOOM}
             />
 
-            <FollowLocation location={myLocation} />
+            {/* Detectar zoom */}
+            <ZoomWatcher
+              onZoomChange={setMapZoom}
+            />
 
-            {/* SECTORS: PUNTS BLAUS */}
+            {/* Centrar en GPS */}
+            <FollowLocation
+              location={myLocation}
+            />
+
+            {/* SECTORS */}
             {locatedSectors.map(sector => (
               <CircleMarker
                 key={`sector-${sector.id}`}
@@ -566,7 +647,7 @@ export default function MapPage() {
               </CircleMarker>
             ))}
 
-            {/* BLOCS: NÚMEROS GRANS I CLICABLES */}
+            {/* BLOCS AMB MIDA SEGONS EL ZOOM */}
             {locatedProblems.map(problem => (
               <Marker
                 key={`problem-${problem.id}`}
@@ -574,7 +655,10 @@ export default function MapPage() {
                   Number(problem.latitude),
                   Number(problem.longitude),
                 ]}
-                icon={createNumberIcon(problem)}
+                icon={createNumberIcon(
+                  problem,
+                  mapZoom
+                )}
                 keyboard={true}
                 zIndexOffset={100}
               >
@@ -588,13 +672,15 @@ export default function MapPage() {
                 >
                   <BlockPopup
                     problem={problem}
-                    sectorName={getSectorName(problem)}
+                    sectorName={
+                      getSectorName(problem)
+                    }
                   />
                 </Popup>
               </Marker>
             ))}
 
-            {/* UBICACIÓ DEL PARTICIPANT */}
+            {/* GPS DEL PARTICIPANT */}
             {myLocation && (
               <>
                 <Circle
@@ -602,7 +688,9 @@ export default function MapPage() {
                     myLocation.lat,
                     myLocation.lng,
                   ]}
-                  radius={myLocation.accuracy}
+                  radius={
+                    myLocation.accuracy
+                  }
                   pathOptions={{
                     color: '#16a34a',
                     fillColor: '#22c55e',
@@ -623,15 +711,26 @@ export default function MapPage() {
                     weight: 2,
                   }}
                 >
-                  <Tooltip permanent direction="top">
+                  <Tooltip
+                    permanent
+                    direction="top"
+                  >
                     Ets aquí
                   </Tooltip>
 
                   <Popup>
-                    <strong>📍 La meva ubicació</strong>
+                    <strong>
+                      📍 La meva ubicació
+                    </strong>
+
                     <br />
-                    Precisió aproximada:{' '}
-                    {Math.round(myLocation.accuracy)} metres
+
+                    Precisió aproximada:
+                    {' '}
+                    {Math.round(
+                      myLocation.accuracy
+                    )}
+                    {' '}metres
                   </Popup>
                 </CircleMarker>
               </>
@@ -648,12 +747,13 @@ export default function MapPage() {
         </div>
 
         <p className="text-xs text-gray-500 mt-4">
-          Toca directament el requadre amb el número
-          del bloc per desplegar-ne tota la informació.
+          Els números es fan més grans
+          quan amplies el mapa.
+          Toca qualsevol número per
+          consultar la informació del bloc.
         </p>
 
         <p className="text-xs text-gray-500 mt-2">
-          Pots ampliar el mapa fins al zoom 22.
           La teva ubicació GPS no es guarda
           ni es comparteix.
         </p>
