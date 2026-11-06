@@ -147,7 +147,7 @@ export default function MapPage() {
                   Number(sector.latitude),
                   Number(sector.longitude),
                 ]}
-                radius={12}
+                radius={6}
                 pathOptions={{
                   color: '#1d4ed8',
                   fillColor: '#3b82f6',
@@ -176,7 +176,7 @@ export default function MapPage() {
                   Number(problem.latitude),
                   Number(problem.longitude),
                 ]}
-                radius={9}
+                radius={4}
                 pathOptions={{
                   color: problem.is_premium ? '#b45309' : '#c2410c',
                   fillColor: problem.is_premium
@@ -214,7 +214,7 @@ export default function MapPage() {
                 />
                 <CircleMarker
                   center={[myLocation.lat, myLocation.lng]}
-                  radius={10}
+                  radius={7}
                   pathOptions={{
                     color: '#15803d',
                     fillColor: '#22c55e',
