@@ -4,36 +4,396 @@ import {
   MapContainer,
   TileLayer,
   CircleMarker,
-  Popup,
   Circle,
+  Tooltip,
+  Popup,
+  useMap,
 } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 
 import { supabase } from '../lib/supabase'
 import Navbar from '../components/Navbar'
 
-// Centre inicial de Collbató
 const CENTER = [41.5673977, 1.8281993]
+const MAX_ZOOM = 22
+
+function hasLocation(item) {
+  return (
+    item.latitude != null &&
+    item.longitude != null &&
+    Number.isFinite(Number(item.latitude)) &&
+    Number.isFinite(Number(item.longitude))
+  )
+}
+
+function FollowLocation({ location }) {
+  const map = useMap()
+
+  useEffect(() => {
+    if (!location) return
+
+    map.flyTo(
+      [location.lat, location.lng],
+      Math.max(map.getZoom(), 19),
+      { duration: 0.7 }
+    )
+  }, [map, location])
+
+  return null
+}
 
 export default function MapPage() {
-  const [sectors, setSectors] = useState([])
   const [problems, setProblems] = useState([])
+  const [sectors, setSectors] = useState([])
   const [myLocation, setMyLocation] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [locating, setLocating] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    async function loadMap() {
+    async function loadMapData() {
       try {
         const [sectorsResult, problemsResult] =
           await Promise.all([
-            supabase.from('sectors').select('*'),
+            supabase
+              .from('sectors')
+              .select('*'),
+
             supabase
               .from('problems')
               .select('*')
               .eq('active', true)
               .order('number'),
           ])
+
+        if (sectorsResult.error) {
+          throw sectorsResult.error
+        }
+
+        if (problemsResult.error) {
+          throw problemsResult.error
+        }
+
+        setSectors(sectorsResult.data || [])
+        setProblems(problemsResult.data || [])
+      } catch (err) {
+        console.error('Error carregant mapa:', err)
+        setError(
+          'No s’han pogut carregar les dades del mapa.'
+        )
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadMapData()
+  }, [])
+
+  function showMyLocation() {
+    if (!navigator.geolocation) {
+      alert('Aquest dispositiu no permet geolocalització.')
+      return
+    }
+
+    setLocating(true)
+
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        setMyLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+        })
+
+        setLocating(false)
+      },
+      err => {
+        console.error(err)
+        alert(
+          'No hem pogut obtenir la teva ubicació. Revisa els permisos GPS.'
+        )
+        setLocating(false)
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0,
+      }
+    )
+  }
+
+  function directions(lat, lng) {
+    const url =
+      'https://www.google.com/maps/dir/?api=1' +
+      `&destination=${lat},${lng}`
+
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
+
+  const locatedSectors = sectors.filter(hasLocation)
+  const locatedProblems = problems.filter(hasLocation)
+
+  return (
+    <div className="min-h-screen bg-[var(--color-chalk)]">
+      <Navbar />
+
+      <div className="max-w-4xl mx-auto p-4">
+        <h1 className="text-3xl font-bold mb-2">
+          🗺️ Mapa Boulder Urbà
+        </h1>
+
+        <p className="text-sm text-gray-600 mb-4">
+          Consulta els sectors i blocs de la competició.
+          Amplia el mapa per distingir els blocs
+          que comparteixen una mateixa paret.
+        </p>
+
+        <button
+          onClick={showMyLocation}
+          disabled={locating}
+          className="bg-orange-600 text-white font-bold px-4 py-3 rounded-xl mb-4 w-full"
+        >
+          {locating
+            ? '📡 Buscant ubicació...'
+            : '📍 Veure la meva ubicació'}
+        </button>
+
+        {loading && (
+          <p className="mb-3">
+            Carregant mapa...
+          </p>
+        )}
+
+        {error && (
+          <p className="text-red-600 mb-3">
+            {error}
+          </p>
+        )}
+
+        {!loading && !error && (
+          <p className="text-sm text-gray-600 mb-3">
+            {locatedSectors.length} sectors ubicats
+            {' · '}
+            {locatedProblems.length} blocs ubicats
+          </p>
+        )}
+
+        <div className="rounded-xl overflow-hidden border border-gray-200">
+          <MapContainer
+            center={CENTER}
+            zoom={17}
+            minZoom={13}
+            maxZoom={MAX_ZOOM}
+            scrollWheelZoom={true}
+            doubleClickZoom={true}
+            style={{
+              height: '70vh',
+              minHeight: 450,
+              width: '100%',
+            }}
+          >
+            <TileLayer
+              attribution="&copy; OpenStreetMap contributors"
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              maxNativeZoom={19}
+              maxZoom={MAX_ZOOM}
+            />
+
+            <FollowLocation location={myLocation} />
+
+            {/* SECTORS */}
+            {locatedSectors.map(sector => (
+              <CircleMarker
+                key={`sector-${sector.id}`}
+                center={[
+                  Number(sector.latitude),
+                  Number(sector.longitude),
+                ]}
+                radius={6}
+                pathOptions={{
+                  color: '#1d4ed8',
+                  fillColor: '#3b82f6',
+                  fillOpacity: 0.85,
+                  weight: 1,
+                }}
+              >
+                <Tooltip>
+                  Sector: {sector.name}
+                </Tooltip>
+
+                <Popup>
+                  <strong>
+                    📍 Sector: {sector.name}
+                  </strong>
+
+                  <br />
+
+                  <button
+                    onClick={() =>
+                      directions(
+                        sector.latitude,
+                        sector.longitude
+                      )
+                    }
+                    style={{
+                      marginTop: 8,
+                      padding: '7px 10px',
+                      color: 'white',
+                      background: '#e85d04',
+                      borderRadius: 8,
+                    }}
+                  >
+                    Com arribar-hi
+                  </button>
+                </Popup>
+              </CircleMarker>
+            ))}
+
+            {/* BLOCS NORMALS I PREMIUM */}
+            {locatedProblems.map(problem => (
+              <CircleMarker
+                key={`problem-${problem.id}`}
+                center={[
+                  Number(problem.latitude),
+                  Number(problem.longitude),
+                ]}
+                radius={4}
+                pathOptions={{
+                  color: problem.is_premium
+                    ? '#b45309'
+                    : '#c2410c',
+                  fillColor: problem.is_premium
+                    ? '#facc15'
+                    : '#f97316',
+                  fillOpacity: 0.95,
+                  weight: 1,
+                }}
+              >
+                <Tooltip
+                  permanent
+                  direction="top"
+                  offset={[0, -2]}
+                  opacity={1}
+                >
+                  <span style={{
+                    fontSize: '10px',
+                    fontWeight: 'bold',
+                  }}>
+                    {problem.number}
+                  </span>
+                </Tooltip>
+
+                <Popup>
+                  <strong>
+                    Bloc {problem.number}
+                  </strong>
+
+                  <br />
+
+                  {problem.is_premium
+                    ? '⭐ Bloc Premium'
+                    : 'Bloc normal'}
+
+                  <br />
+
+                  <button
+                    onClick={() =>
+                      directions(
+                        problem.latitude,
+                        problem.longitude
+                      )
+                    }
+                    style={{
+                      marginTop: 8,
+                      padding: '7px 10px',
+                      color: 'white',
+                      background: '#e85d04',
+                      borderRadius: 8,
+                    }}
+                  >
+                    Com arribar-hi
+                  </button>
+                </Popup>
+              </CircleMarker>
+            ))}
+
+            {/* UBICACIÓ ACTUAL DEL PARTICIPANT */}
+            {myLocation && (
+              <>
+                <Circle
+                  center={[
+                    myLocation.lat,
+                    myLocation.lng,
+                  ]}
+                  radius={myLocation.accuracy}
+                  pathOptions={{
+                    color: '#16a34a',
+                    fillColor: '#22c55e',
+                    fillOpacity: 0.06,
+                  }}
+                />
+
+                <CircleMarker
+                  center={[
+                    myLocation.lat,
+                    myLocation.lng,
+                  ]}
+                  radius={7}
+                  pathOptions={{
+                    color: '#166534',
+                    fillColor: '#22c55e',
+                    fillOpacity: 1,
+                    weight: 2,
+                  }}
+                >
+                  <Tooltip
+                    permanent
+                    direction="top"
+                  >
+                    Ets aquí
+                  </Tooltip>
+
+                  <Popup>
+                    <strong>
+                      📍 La meva ubicació
+                    </strong>
+
+                    <br />
+
+                    Precisió aproximada:
+                    {' '}
+                    {Math.round(myLocation.accuracy)}
+                    {' '}metres
+                  </Popup>
+                </CircleMarker>
+              </>
+            )}
+          </MapContainer>
+        </div>
+
+        <div className="flex flex-wrap gap-4 text-sm mt-4">
+          <span>🔵 Sectors</span>
+          <span>🟠 Blocs</span>
+          <span>🟡 Premium</span>
+          <span>🟢 La meva ubicació</span>
+        </div>
+
+        <p className="text-xs text-gray-500 mt-4">
+          Amplia el mapa amb els botons + i - o
+          amb dos dits al mòbil. Les ubicacions
+          són orientatives.
+        </p>
+
+        <p className="text-xs text-gray-500 mt-2">
+          Només es mostren els blocs i sectors
+          amb coordenades guardades.
+          La teva ubicació no es guarda
+          ni es comparteix.
+        </p>
+      </div>
+    </div>
+  )
+}
 
         if (sectorsResult.error) throw sectorsResult.error
         if (problemsResult.error) throw problemsResult.error
