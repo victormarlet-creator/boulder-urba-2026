@@ -6,6 +6,7 @@ import {
   TileLayer,
   CircleMarker,
   Circle,
+  Tooltip,
   useMap,
   useMapEvents,
 } from 'react-leaflet'
@@ -491,17 +492,29 @@ export default function AdminMapPage() {
 
             {/* Blocs */}
             {locatedProblems.map(p => (
-              <CircleMarker
-                key={`problem-${p.id}`}
-                center={[Number(p.latitude), Number(p.longitude)]}
-                radius={4}
-                pathOptions={{
-                  color: p.is_premium ? '#b45309' : '#c2410c',
-                  fillColor: p.is_premium ? '#facc15' : '#f97316',
-                  fillOpacity: 0.95,
-                }}
-              />
-            ))}
+  <CircleMarker
+    key={`problem-${p.id}`}
+    center={[Number(p.latitude), Number(p.longitude)]}
+    radius={4}
+    pathOptions={{
+      color: p.is_premium ? '#b45309' : '#c2410c',
+      fillColor: p.is_premium ? '#facc15' : '#f97316',
+      fillOpacity: 0.95,
+      weight: 1,
+    }}
+  >
+    <Tooltip
+      permanent
+      direction="top"
+      offset={[0, -2]}
+      opacity={1}
+    >
+      <span style={{ fontSize: '10px', fontWeight: 'bold' }}>
+        {p.number}
+      </span>
+    </Tooltip>
+  </CircleMarker>
+))}
 
             {/* Punt provisional */}
             {draft && (
