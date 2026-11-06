@@ -4,31 +4,88 @@ import { Link } from 'react-router-dom'
 import {
   MapContainer,
   TileLayer,
+  Marker,
   CircleMarker,
   Circle,
   Tooltip,
   Popup,
   useMap,
 } from 'react-leaflet'
+import { divIcon } from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
 import { supabase } from '../lib/supabase'
+import { getPointsForAttempts } from '../utils/scoring'
 import Navbar from '../components/Navbar'
 
 const CENTER = [41.5673977, 1.8281993]
 const MAX_ZOOM = 22
 
-// Comprova que el bloc o sector té coordenades
+// Comprovar les coordenades
 function hasLocation(item) {
   return (
     item.latitude != null &&
     item.longitude != null &&
     Number.isFinite(Number(item.latitude)) &&
-    Number.isFinite(Number(item.longitude))
+    Number.isFinite(Number(item.longitude)) &&
+    Number(item.latitude) >= -90 &&
+    Number(item.latitude) <= 90 &&
+    Number(item.longitude) >= -180 &&
+    Number(item.longitude) <= 180
   )
 }
 
-// Centra el mapa en la ubicació del participant
+// Crear marcador numerat fàcil de tocar amb el dit
+function createNumberIcon(problem) {
+  const premium = problem.is_premium === true
+
+  const background = premium ? '#eab308' : '#e85d04'
+  const border = premium ? '#a16207' : '#9a3412'
+
+  const number = Number(problem.number)
+  const label = Number.isFinite(number)
+    ? String(number)
+    : '?'
+
+  return divIcon({
+    className: 'boulder-number-marker',
+    iconSize: [44, 44],
+    iconAnchor: [22, 22],
+    popupAnchor: [0, -23],
+    html: `
+      <div style="
+        width:44px;
+        height:44px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        box-sizing:border-box;
+        cursor:pointer;
+        touch-action:manipulation;
+      ">
+        <div style="
+          width:38px;
+          height:38px;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          box-sizing:border-box;
+          background:${background};
+          color:white;
+          border:2px solid ${border};
+          border-radius:10px;
+          font-size:16px;
+          font-weight:800;
+          box-shadow:0 2px 7px rgba(0,0,0,0.3);
+        ">
+          ${label}
+        </div>
+      </div>
+    `,
+  })
+}
+
+// Centrar el mapa en la ubicació del participant
 function FollowLocation({ location }) {
   const map = useMap()
 
@@ -45,13 +102,267 @@ function FollowLocation({ location }) {
   return null
 }
 
-// Obrir indicacions a Google Maps
+// Obrir Google Maps amb indicacions
 function directions(lat, lng) {
   const url =
     'https://www.google.com/maps/dir/?api=1' +
     `&destination=${lat},${lng}`
 
   window.open(url, '_blank', 'noopener,noreferrer')
+}
+
+const buttonStyle = {
+  display: 'block',
+  width: '100%',
+  padding: '11px 12px',
+  boxSizing: 'border-box',
+  borderRadius: 9,
+  border: 'none',
+  color: 'white',
+  fontWeight: 'bold',
+  textAlign: 'center',
+  textDecoration: 'none',
+  cursor: 'pointer',
+  fontSize: 13,
+}
+
+// Informació completa en clicar un número
+function BlockPopup({ problem, sectorName }) {
+  const attempts = [
+    { label: '1r', value: 1 },
+    { label: '2n', value: 2 },
+    { label: '3r', value: 3 },
+    { label: '4t+', value: 4 },
+  ]
+
+  const blockUrl =
+    `/problemes?bloc=${encodeURIComponent(problem.number)}`
+
+  return (
+    <div
+      style={{
+        width: 245,
+        maxWidth: '75vw',
+        maxHeight: '48vh',
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        WebkitOverflowScrolling: 'touch',
+        color: '#1a1a1a',
+        paddingRight: 3,
+      }}
+    >
+      {/* Número i tipus de bloc */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 6,
+          marginBottom: 7,
+        }}
+      >
+        <strong style={{ fontSize: 17 }}>
+          Bloc #{problem.number}
+        </strong>
+
+        {problem.is_premium && (
+          <span
+            style={{
+              background: '#fff3d6',
+              color: '#9a5500',
+              padding: '4px 6px',
+              borderRadius: 6,
+              fontSize: 10,
+              fontWeight: 'bold',
+            }}
+          >
+            ⭐ PREMIUM
+          </span>
+        )}
+      </div>
+
+      {/* Nom clicable: menú habitual Blocs */}
+      <Link
+        to={blockUrl}
+        style={{
+          display: 'block',
+          fontSize: 16,
+          fontWeight: 'bold',
+          color: '#e85d04',
+          textDecoration: 'underline',
+          marginBottom: 9,
+          lineHeight: 1.4,
+          overflowWrap: 'anywhere',
+        }}
+      >
+        {problem.name?.trim()
+          ? problem.name
+          : `Bloc #${problem.number}`}
+        {' ↗'}
+      </Link>
+
+      {/* Sector */}
+      <div
+        style={{
+          fontSize: 12,
+          color: '#555',
+          marginBottom: 9,
+        }}
+      >
+        📍 <strong>Sector:</strong> {sectorName}
+      </div>
+
+      {/* Grau i modalitat, si estan disponibles */}
+      {(problem.grade || problem.modality) && (
+        <div
+          style={{
+            fontSize: 12,
+            marginBottom: 9,
+            color: '#555',
+          }}
+        >
+          {problem.grade && (
+            <strong>{problem.grade}</strong>
+          )}
+
+          {problem.grade && problem.modality && ' · '}
+
+          {problem.modality}
+        </div>
+      )}
+
+      {/* Explicació */}
+      {problem.beta && (
+        <div
+          style={{
+            background: '#f5f0eb',
+            padding: 10,
+            borderRadius: 8,
+            marginBottom: 12,
+          }}
+        >
+          <strong
+            style={{
+              display: 'block',
+              fontSize: 12,
+              marginBottom: 5,
+            }}
+          >
+            ℹ️ Explicació del bloc
+          </strong>
+
+          <div
+            style={{
+              fontSize: 12,
+              lineHeight: 1.5,
+              whiteSpace: 'pre-wrap',
+              overflowWrap: 'anywhere',
+            }}
+          >
+            {problem.beta}
+          </div>
+        </div>
+      )}
+
+      {/* Puntuacions */}
+      <div
+        style={{
+          fontWeight: 'bold',
+          fontSize: 12,
+          marginBottom: 7,
+        }}
+      >
+        🏆 Punts segons els intents
+      </div>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: 5,
+          marginBottom: 10,
+        }}
+      >
+        {attempts.map(item => {
+          const points = getPointsForAttempts(
+            problem,
+            item.value
+          )
+
+          return (
+            <div
+              key={item.value}
+              style={{
+                background: '#f5f0eb',
+                borderRadius: 7,
+                padding: '8px 2px',
+                textAlign: 'center',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  color: '#666',
+                  marginBottom: 4,
+                }}
+              >
+                {item.label}
+              </div>
+
+              <strong
+                style={{
+                  fontSize: 13,
+                  color: '#e85d04',
+                }}
+              >
+                {points == null ? '—' : points}
+              </strong>
+            </div>
+          )
+        })}
+      </div>
+
+      {problem.is_premium && (
+        <p
+          style={{
+            fontSize: 10,
+            color: '#777',
+            lineHeight: 1.4,
+            margin: '0 0 12px',
+          }}
+        >
+          Punts base. El factor premium es calcula
+          a la classificació.
+        </p>
+      )}
+
+      {/* Anar directament al menú Blocs */}
+      <Link
+        to={blockUrl}
+        style={{
+          ...buttonStyle,
+          background: '#1a1a1a',
+          marginBottom: 9,
+        }}
+      >
+        🧗 Anar al bloc #{problem.number}
+      </Link>
+
+      {/* Indicacions */}
+      <button
+        type="button"
+        onClick={() =>
+          directions(problem.latitude, problem.longitude)
+        }
+        style={{
+          ...buttonStyle,
+          background: '#e85d04',
+        }}
+      >
+        📍 Com arribar-hi
+      </button>
+    </div>
+  )
 }
 
 export default function MapPage() {
@@ -62,33 +373,27 @@ export default function MapPage() {
   const [locating, setLocating] = useState(false)
   const [error, setError] = useState('')
 
-  // Carregar sectors i blocs actius de Supabase
+  // Carregar les dades de Supabase
   useEffect(() => {
     async function loadMapData() {
       try {
-        const [problemsResult, sectorsResult] =
-          await Promise.all([
-            supabase
-              .from('problems')
-              .select('*')
-              .eq('active', true)
-              .order('number'),
+        const [p, s] = await Promise.all([
+          supabase
+            .from('problems')
+            .select('*')
+            .eq('active', true)
+            .order('number'),
 
-            supabase
-              .from('sectors')
-              .select('*'),
-          ])
+          supabase
+            .from('sectors')
+            .select('*'),
+        ])
 
-        if (problemsResult.error) {
-          throw problemsResult.error
-        }
+        if (p.error) throw p.error
+        if (s.error) throw s.error
 
-        if (sectorsResult.error) {
-          throw sectorsResult.error
-        }
-
-        setProblems(problemsResult.data || [])
-        setSectors(sectorsResult.data || [])
+        setProblems(p.data || [])
+        setSectors(s.data || [])
       } catch (err) {
         console.error('Error carregant mapa:', err)
         setError(
@@ -102,10 +407,10 @@ export default function MapPage() {
     loadMapData()
   }, [])
 
-  // Obtenir ubicació actual del participant
+  // Mostrar la ubicació pròpia
   function showMyLocation() {
     if (!navigator.geolocation) {
-      alert('Aquest dispositiu no permet geolocalització.')
+      alert('Aquest dispositiu no permet GPS.')
       return
     }
 
@@ -124,7 +429,8 @@ export default function MapPage() {
       err => {
         console.error('Error GPS:', err)
         alert(
-          'No hem pogut obtenir la teva ubicació. Revisa els permisos GPS.'
+          'No hem pogut obtenir la teva ubicació. ' +
+          'Revisa els permisos GPS.'
         )
         setLocating(false)
       },
@@ -139,6 +445,15 @@ export default function MapPage() {
   const locatedProblems = problems.filter(hasLocation)
   const locatedSectors = sectors.filter(hasLocation)
 
+  // Nom del sector corresponent
+  function getSectorName(problem) {
+    const sector = sectors.find(
+      s => String(s.id) === String(problem.sector_id)
+    )
+
+    return sector?.name || 'Sense sector assignat'
+  }
+
   return (
     <div className="min-h-screen bg-[var(--color-chalk)]">
       <Navbar />
@@ -149,12 +464,11 @@ export default function MapPage() {
         </h1>
 
         <p className="text-sm text-gray-600 mb-4">
-          Consulta els sectors i els blocs de la competició.
-          Clica el nom d'un bloc per anar directament
-          al seu registre d'intents.
+          Toca el número d'un bloc per consultar
+          la seva informació, puntuació i ubicació.
         </p>
 
-        {/* UBICACIÓ DEL PARTICIPANT */}
+        {/* Botó GPS */}
         <button
           onClick={showMyLocation}
           disabled={locating}
@@ -165,11 +479,7 @@ export default function MapPage() {
             : '📍 Veure la meva ubicació'}
         </button>
 
-        {loading && (
-          <p className="text-sm mb-3">
-            Carregant mapa...
-          </p>
-        )}
+        {loading && <p>Carregant mapa...</p>}
 
         {error && (
           <p className="text-red-600 mb-3">
@@ -185,7 +495,7 @@ export default function MapPage() {
           </p>
         )}
 
-        {/* MAPA INTERACTIU */}
+        {/* MAPA */}
         <div className="rounded-xl overflow-hidden border border-gray-200">
           <MapContainer
             center={CENTER}
@@ -209,7 +519,7 @@ export default function MapPage() {
 
             <FollowLocation location={myLocation} />
 
-            {/* SECTORS */}
+            {/* SECTORS: PUNTS BLAUS */}
             {locatedSectors.map(sector => (
               <CircleMarker
                 key={`sector-${sector.id}`}
@@ -231,11 +541,12 @@ export default function MapPage() {
 
                 <Popup>
                   <div style={{ minWidth: 150 }}>
-                    <strong style={{ fontSize: 15 }}>
+                    <strong>
                       📍 {sector.name}
                     </strong>
 
                     <button
+                      type="button"
                       onClick={() =>
                         directions(
                           sector.latitude,
@@ -243,144 +554,47 @@ export default function MapPage() {
                         )
                       }
                       style={{
-                        display: 'block',
-                        marginTop: 10,
+                        ...buttonStyle,
                         background: '#e85d04',
-                        color: 'white',
-                        padding: '9px 12px',
-                        border: 'none',
-                        borderRadius: 8,
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        width: '100%',
+                        marginTop: 10,
                       }}
                     >
-                      📍 Com arribar-hi
+                      Com arribar-hi
                     </button>
                   </div>
                 </Popup>
               </CircleMarker>
             ))}
 
-            {/* BLOCS NORMALS I PREMIUM */}
+            {/* BLOCS: NÚMEROS GRANS I CLICABLES */}
             {locatedProblems.map(problem => (
-              <CircleMarker
+              <Marker
                 key={`problem-${problem.id}`}
-                center={[
+                position={[
                   Number(problem.latitude),
                   Number(problem.longitude),
                 ]}
-                radius={4}
-                pathOptions={{
-                  color: problem.is_premium
-                    ? '#b45309'
-                    : '#c2410c',
-                  fillColor: problem.is_premium
-                    ? '#facc15'
-                    : '#f97316',
-                  fillOpacity: 0.95,
-                  weight: 1,
-                }}
+                icon={createNumberIcon(problem)}
+                keyboard={true}
+                zIndexOffset={100}
               >
-                {/* Número visible sobre el marcador */}
-                <Tooltip
-                  permanent
-                  direction="top"
-                  offset={[0, -3]}
-                  opacity={1}
+                <Popup
+                  maxWidth={285}
+                  minWidth={240}
+                  autoPan={true}
+                  keepInView={true}
+                  autoPanPaddingTopLeft={[15, 15]}
+                  autoPanPaddingBottomRight={[15, 15]}
                 >
-                  <strong style={{ fontSize: 10 }}>
-                    {problem.number}
-                  </strong>
-                </Tooltip>
-
-                {/* Informació del bloc */}
-                <Popup>
-                  <div style={{ minWidth: 180 }}>
-                    <strong style={{
-                      display: 'block',
-                      fontSize: 16,
-                      marginBottom: 6,
-                    }}>
-                      Bloc #{problem.number}
-                    </strong>
-
-                    {/* NOM CLICABLE: MENÚ BLOCS */}
-                    <Link
-                      to={`/problemes?bloc=${encodeURIComponent(problem.number)}`}
-                      style={{
-                        display: 'block',
-                        fontSize: 15,
-                        fontWeight: 'bold',
-                        color: '#e85d04',
-                        textDecoration: 'underline',
-                        marginTop: 8,
-                        marginBottom: 10,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {problem.name?.trim()
-                        ? problem.name
-                        : `Bloc #${problem.number}`}
-                      {' ↗'}
-                    </Link>
-
-                    <div style={{
-                      fontSize: 12,
-                      marginBottom: 12,
-                      color: '#4a4a4a',
-                    }}>
-                      {problem.is_premium
-                        ? '⭐ Bloc Premium'
-                        : '🧗 Bloc normal'}
-                    </div>
-
-                    {/* ACCÉS DIRECTE AL MENÚ BLOCS */}
-                    <Link
-                      to={`/problemes?bloc=${encodeURIComponent(problem.number)}`}
-                      style={{
-                        display: 'block',
-                        padding: '10px 12px',
-                        borderRadius: 8,
-                        background: '#1a1a1a',
-                        color: 'white',
-                        fontWeight: 'bold',
-                        textAlign: 'center',
-                        textDecoration: 'none',
-                        marginBottom: 8,
-                      }}
-                    >
-                      🧗 Anar al bloc #{problem.number}
-                    </Link>
-
-                    {/* INDICACIONS */}
-                    <button
-                      onClick={() =>
-                        directions(
-                          problem.latitude,
-                          problem.longitude
-                        )
-                      }
-                      style={{
-                        display: 'block',
-                        padding: '9px 12px',
-                        color: 'white',
-                        background: '#e85d04',
-                        border: 'none',
-                        borderRadius: 8,
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        width: '100%',
-                      }}
-                    >
-                      📍 Com arribar-hi
-                    </button>
-                  </div>
+                  <BlockPopup
+                    problem={problem}
+                    sectorName={getSectorName(problem)}
+                  />
                 </Popup>
-              </CircleMarker>
+              </Marker>
             ))}
 
-            {/* UBICACIÓ ACTUAL DEL PARTICIPANT */}
+            {/* UBICACIÓ DEL PARTICIPANT */}
             {myLocation && (
               <>
                 <Circle
@@ -409,22 +623,15 @@ export default function MapPage() {
                     weight: 2,
                   }}
                 >
-                  <Tooltip
-                    permanent
-                    direction="top"
-                  >
+                  <Tooltip permanent direction="top">
                     Ets aquí
                   </Tooltip>
 
                   <Popup>
-                    <strong>
-                      📍 La meva ubicació
-                    </strong>
+                    <strong>📍 La meva ubicació</strong>
                     <br />
-                    Precisió aproximada:
-                    {' '}
-                    {Math.round(myLocation.accuracy)}
-                    {' '}metres
+                    Precisió aproximada:{' '}
+                    {Math.round(myLocation.accuracy)} metres
                   </Popup>
                 </CircleMarker>
               </>
@@ -435,20 +642,19 @@ export default function MapPage() {
         {/* LLEGENDA */}
         <div className="flex flex-wrap gap-4 text-sm mt-4">
           <span>🔵 Sectors</span>
-          <span>🟠 Blocs</span>
+          <span>🟠 Blocs normals</span>
           <span>🟡 Premium</span>
           <span>🟢 La meva ubicació</span>
         </div>
 
         <p className="text-xs text-gray-500 mt-4">
-          Clica un punt del mapa per veure el bloc.
-          Toca el seu nom per obrir-lo al menú Blocs.
+          Toca directament el requadre amb el número
+          del bloc per desplegar-ne tota la informació.
         </p>
 
         <p className="text-xs text-gray-500 mt-2">
-          Amplia el mapa amb els botons + i -.
-          Només es mostren els punts amb coordenades
-          guardades. La teva ubicació GPS no es guarda
+          Pots ampliar el mapa fins al zoom 22.
+          La teva ubicació GPS no es guarda
           ni es comparteix.
         </p>
       </main>
