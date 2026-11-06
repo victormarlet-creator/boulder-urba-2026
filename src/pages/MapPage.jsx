@@ -19,12 +19,12 @@ import { supabase } from '../lib/supabase'
 import { getPointsForAttempts } from '../utils/scoring'
 import Navbar from '../components/Navbar'
 
-// Configuració del mapa
+// CONFIGURACIÓ DEL MAPA
 const CENTER = [41.5673977, 1.8281993]
 const INITIAL_ZOOM = 17
 const MAX_ZOOM = 22
 
-// Comprovar coordenades
+// COMPROVAR COORDENADES
 function hasLocation(item) {
   return (
     item.latitude != null &&
@@ -38,29 +38,31 @@ function hasLocation(item) {
   )
 }
 
-// Detectar el zoom actual del mapa
+// DETECTAR ELS CANVIS DE ZOOM
 function ZoomWatcher({ onZoomChange }) {
-  const map = useMapEvents({
-    zoomend() {
-      onZoomChange(map.getZoom())
+  useMapEvents({
+    zoomend(e) {
+      onZoomChange(e.target.getZoom())
     },
   })
 
   return null
 }
 
-// Calcular la mida dels números segons el zoom
+// MIDA DELS MARCADORS SEGONS EL ZOOM
 function getMarkerSize(zoom) {
-  if (zoom <= 15) return 16
-  if (zoom === 16) return 20
-  if (zoom === 17) return 25
-  if (zoom === 18) return 30
-  if (zoom === 19) return 34
+  if (zoom <= 15) return 9
+  if (zoom === 16) return 11
+  if (zoom === 17) return 12
+  if (zoom === 18) return 16
+  if (zoom === 19) return 22
+  if (zoom === 20) return 28
+  if (zoom === 21) return 34
 
-  return 38
+  return 36
 }
 
-// Crear un marcador numerat adaptatiu
+// CREAR MARCADOR NUMERAT I TÀCTIL
 function createNumberIcon(problem, zoom) {
   const premium = problem.is_premium === true
 
@@ -73,19 +75,15 @@ function createNumberIcon(problem, zoom) {
     : '?'
 
   const size = getMarkerSize(zoom)
-
   const fontSize = Math.max(
-    9,
+    7,
     Math.round(size * 0.42)
   )
-
   const radius = Math.max(
-    4,
+    3,
     Math.round(size * 0.22)
   )
 
-  // Zona tàctil de 44 px.
-  // La part visible canvia segons el zoom.
   return divIcon({
     className: 'boulder-number-marker',
     iconSize: [44, 44],
@@ -111,12 +109,13 @@ function createNumberIcon(problem, zoom) {
           box-sizing:border-box;
           background:${background};
           color:white;
-          border:1.5px solid ${border};
+          border:1px solid ${border};
           border-radius:${radius}px;
           font-size:${fontSize}px;
           font-weight:800;
           line-height:1;
-          box-shadow:0 2px 5px rgba(0,0,0,0.25);
+          white-space:nowrap;
+          box-shadow:0 1px 3px rgba(0,0,0,0.22);
           pointer-events:none;
         ">
           ${label}
@@ -126,7 +125,7 @@ function createNumberIcon(problem, zoom) {
   })
 }
 
-// Centrar el mapa en la ubicació GPS
+// CENTRAR EL MAPA AMB EL GPS
 function FollowLocation({ location }) {
   const map = useMap()
 
@@ -143,20 +142,16 @@ function FollowLocation({ location }) {
   return null
 }
 
-// Obrir Google Maps
+// OBRIR INDICACIONS A GOOGLE MAPS
 function directions(lat, lng) {
   const url =
     'https://www.google.com/maps/dir/?api=1' +
     `&destination=${lat},${lng}`
 
-  window.open(
-    url,
-    '_blank',
-    'noopener,noreferrer'
-  )
+  window.open(url, '_blank', 'noopener,noreferrer')
 }
 
-// Estil dels botons
+// ESTIL DELS BOTONS
 const buttonStyle = {
   display: 'block',
   width: '100%',
@@ -172,7 +167,7 @@ const buttonStyle = {
   fontSize: 13,
 }
 
-// Informació completa del bloc
+// REQUADRE D'INFORMACIÓ DEL BLOC
 function BlockPopup({ problem, sectorName }) {
   const attempts = [
     { label: '1r', value: 1 },
@@ -181,7 +176,6 @@ function BlockPopup({ problem, sectorName }) {
     { label: '4t+', value: 4 },
   ]
 
-  // Enllaç al menú Blocs
   const blockUrl =
     `/problemes?bloc=${encodeURIComponent(problem.number)}`
 
@@ -198,7 +192,7 @@ function BlockPopup({ problem, sectorName }) {
         paddingRight: 3,
       }}
     >
-      {/* Número i premium */}
+      {/* NÚMERO I PREMIUM */}
       <div
         style={{
           display: 'flex',
@@ -228,7 +222,7 @@ function BlockPopup({ problem, sectorName }) {
         )}
       </div>
 
-      {/* Nom clicable */}
+      {/* NOM CLICABLE */}
       <Link
         to={blockUrl}
         style={{
@@ -248,7 +242,7 @@ function BlockPopup({ problem, sectorName }) {
         {' ↗'}
       </Link>
 
-      {/* Sector */}
+      {/* SECTOR */}
       <div
         style={{
           fontSize: 12,
@@ -259,7 +253,7 @@ function BlockPopup({ problem, sectorName }) {
         📍 <strong>Sector:</strong> {sectorName}
       </div>
 
-      {/* Grau i modalitat */}
+      {/* GRAU I MODALITAT */}
       {(problem.grade || problem.modality) && (
         <div
           style={{
@@ -278,7 +272,7 @@ function BlockPopup({ problem, sectorName }) {
         </div>
       )}
 
-      {/* Explicació del bloc */}
+      {/* EXPLICACIÓ DEL BLOC */}
       {problem.beta && (
         <div
           style={{
@@ -311,7 +305,7 @@ function BlockPopup({ problem, sectorName }) {
         </div>
       )}
 
-      {/* Puntuacions */}
+      {/* PUNTUACIONS */}
       <div
         style={{
           fontWeight: 'bold',
@@ -369,7 +363,7 @@ function BlockPopup({ problem, sectorName }) {
         })}
       </div>
 
-      {/* Informació premium */}
+      {/* FACTOR PREMIUM */}
       {problem.is_premium && (
         <p
           style={{
@@ -384,7 +378,7 @@ function BlockPopup({ problem, sectorName }) {
         </p>
       )}
 
-      {/* Obrir el menú habitual de blocs */}
+      {/* BOTÓ MENÚ BLOCS */}
       <Link
         to={blockUrl}
         style={{
@@ -396,7 +390,7 @@ function BlockPopup({ problem, sectorName }) {
         🧗 Anar al bloc #{problem.number}
       </Link>
 
-      {/* Google Maps */}
+      {/* GOOGLE MAPS */}
       <button
         type="button"
         onClick={() =>
@@ -416,7 +410,7 @@ function BlockPopup({ problem, sectorName }) {
   )
 }
 
-// Pàgina principal del mapa
+// PÀGINA PRINCIPAL DEL MAPA
 export default function MapPage() {
   const [problems, setProblems] = useState([])
   const [sectors, setSectors] = useState([])
@@ -430,7 +424,7 @@ export default function MapPage() {
   const [locating, setLocating] = useState(false)
   const [error, setError] = useState('')
 
-  // Carregar blocs i sectors
+  // CARREGAR BLOCS I SECTORS
   useEffect(() => {
     async function loadMapData() {
       try {
@@ -468,7 +462,7 @@ export default function MapPage() {
     loadMapData()
   }, [])
 
-  // Localització GPS del participant
+  // GPS DEL PARTICIPANT
   function showMyLocation() {
     if (!navigator.geolocation) {
       alert('Aquest dispositiu no permet GPS.')
@@ -505,7 +499,7 @@ export default function MapPage() {
     )
   }
 
-  // Filtrar punts amb coordenades
+  // FILTRAR PUNTS AMB COORDENADES
   const locatedProblems = problems.filter(
     hasLocation
   )
@@ -514,7 +508,7 @@ export default function MapPage() {
     hasLocation
   )
 
-  // Obtenir el nom del sector
+  // OBTENIR EL NOM DEL SECTOR
   function getSectorName(problem) {
     const sector = sectors.find(
       s =>
@@ -539,7 +533,7 @@ export default function MapPage() {
           la seva informació, puntuació i ubicació.
         </p>
 
-        {/* Botó GPS */}
+        {/* BOTÓ GPS */}
         <button
           onClick={showMyLocation}
           disabled={locating}
@@ -585,17 +579,17 @@ export default function MapPage() {
           >
             <TileLayer
               attribution="&copy; OpenStreetMap contributors"
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}/{z}.png"
               maxNativeZoom={19}
               maxZoom={MAX_ZOOM}
             />
 
-            {/* Detectar zoom */}
+            {/* DETECTAR ZOOM */}
             <ZoomWatcher
               onZoomChange={setMapZoom}
             />
 
-            {/* Centrar en GPS */}
+            {/* CENTRAR GPS */}
             <FollowLocation
               location={myLocation}
             />
@@ -680,7 +674,7 @@ export default function MapPage() {
               </Marker>
             ))}
 
-            {/* GPS DEL PARTICIPANT */}
+            {/* UBICACIÓ DEL PARTICIPANT */}
             {myLocation && (
               <>
                 <Circle
@@ -747,10 +741,9 @@ export default function MapPage() {
         </div>
 
         <p className="text-xs text-gray-500 mt-4">
-          Els números es fan més grans
-          quan amplies el mapa.
-          Toca qualsevol número per
-          consultar la informació del bloc.
+          Els números són petits quan el mapa
+          està allunyat i augmenten de mida
+          quan fas zoom.
         </p>
 
         <p className="text-xs text-gray-500 mt-2">
