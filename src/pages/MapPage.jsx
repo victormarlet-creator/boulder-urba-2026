@@ -283,37 +283,51 @@ export default function MapPage() {
                   </span>
                 </Tooltip>
 
-                <Popup>
-                  <strong>
-                    Bloc {problem.number}
-                  </strong>
+                
+<Popup>
+  <div style={{ minWidth: '160px' }}>
+    <strong style={{ fontSize: '15px' }}>
+      Bloc #{problem.number}
+    </strong>
 
-                  <br />
+    {problem.name && (
+      <div style={{
+        fontSize: '14px',
+        fontWeight: 'bold',
+        marginTop: '6px',
+        marginBottom: '6px',
+        color: '#1a1a1a',
+      }}>
+        {problem.name}
+      </div>
+    )}
 
-                  {problem.is_premium
-                    ? '⭐ Bloc Premium'
-                    : 'Bloc normal'}
+    <div style={{ fontSize: '12px', marginBottom: '8px' }}>
+      {problem.is_premium
+        ? '⭐ Bloc Premium'
+        : '🧗 Bloc normal'}
+    </div>
 
-                  <br />
+    <button
+      onClick={() =>
+        directions(problem.latitude, problem.longitude)
+      }
+      style={{
+        padding: '8px 12px',
+        color: 'white',
+        background: '#e85d04',
+        border: 'none',
+        borderRadius: '8px',
+        fontWeight: 'bold',
+        cursor: 'pointer',
+        width: '100%',
+      }}
+    >
+      📍 Com arribar-hi
+    </button>
+  </div>
+</Popup>
 
-                  <button
-                    onClick={() =>
-                      directions(
-                        problem.latitude,
-                        problem.longitude
-                      )
-                    }
-                    style={{
-                      marginTop: 8,
-                      padding: '7px 10px',
-                      color: 'white',
-                      background: '#e85d04',
-                      borderRadius: 8,
-                    }}
-                  >
-                    Com arribar-hi
-                  </button>
-                </Popup>
               </CircleMarker>
             ))}
 
