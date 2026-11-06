@@ -20,7 +20,9 @@ import { getPointsForAttempts } from '../utils/scoring'
 import Navbar from '../components/Navbar'
 
 
-const CENTER = [41.5692, 1.8281993]
+
+const CENTER = [41.5715, 1.8287]
+
 
 const INITIAL_ZOOM = 17
 const MAX_ZOOM = 22
